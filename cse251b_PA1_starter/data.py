@@ -10,6 +10,7 @@ def traffic_sign(aligned=True):
     return load_traffic('data', kind='unaligned')
 
 
+
 load_data = traffic_sign
 
 def z_score_normalize(X, u = None, sd = None):
