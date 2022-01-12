@@ -99,7 +99,10 @@ class PCA:
         eigen_vectors = eigen_vectors[idx]
         # -2) the Avi’s are actually the eigenvectors of the original huge matrix C
         eigen_vectors = (np.matmul(msd.T, eigen_vectors)).T  # map origin from original one - A.v
+    
+        row_norm = np.sum(np.abs(eigen_vectors)**2, axis=-1)**(1. / 2)  # M
 
+        #self.normalized_eig_vecs = eigen_vectors / (row_norm.reshape(-1, 1))  # M x d
         # -3) projection
         self.normalized_eig_vecs = eigen_vectors / np.linalg.norm(eigen_vectors, 2, axis=0)
         self.principal_eigen_vectors = self.normalized_eig_vecs[:self.num_components].T
@@ -107,5 +110,6 @@ class PCA:
         #5. divide by the standard deviation of the projections, which is the square root of the eigenvalue
         self.principal_sqrt_eigen_values = np.sqrt(eigen_values[:self.num_components])
         self.projected = np.matmul(msd, self.principal_eigen_vectors) / self.principal_sqrt_eigen_values
+        #print(np.shape(self.projected))
         
         return self.projected, self.mean_img,  self.principal_sqrt_eigen_values, self.principal_eigen_vectors

@@ -14,10 +14,12 @@ class LogisticRegression():
         class_size: number of classes, should be 4
         lr: learning rate
         '''
-        self.w = np.random.rand(size + 1)
+        #size of the weight -> initialize to random
+        self.w = np.random.rand(size + 1) 
+        #learning rate
         self.lr = lr
 
-    def forward(self, x: np.ndarray) -> np.ndarray:
+    def logistic_model(self, x: np.ndarray) -> np.ndarray:
         ''' 
         logistic model forward
 
@@ -47,12 +49,16 @@ class LogisticRegression():
 
         loss: loss value
         '''
-        #y_hat = self.logistic(np.dot(X, self.w))
-        #return (- np.dot(y.T, np.log(y_hat)) / len(y_hat))[0][0]
 
         return -np.mean(true_y * np.log(y) + (1 - true_y) * np.log(1 - y))
 
-    def backward(self, x: np.ndarray, y: np.ndarray, true_y: np.ndarray) -> None:
+
+    def simple_logistic_model_loss(self,model_output, input_vec, true_label):
+        loss = np.sum(true_label * np.log(model_output) \
+                    + (1 - true_label) * np.log(1 - model_output)) * -1
+        return loss.T
+
+    def update_weight(self, x: np.ndarray, y: np.ndarray, true_y: np.ndarray) -> None:
         '''
         logistic model backward
 
@@ -78,14 +84,6 @@ class LogisticRegression():
         accuracy = correct / y.shape[0]
         return accuracy
 
-    def logistic(self, s):
-        return np.array(1 / (1 + np.exp(-s)))
-
-    def predict(self, X):
-        probs = self.logistic(np.dot(X, self.w))
-        prediction = np.zeros(probs.shape)
-        prediction[probs > 0.5] = 1
-        return prediction
     '''
     def loss(self, X, y):
         y_hat = self.logistic(np.dot(X, self.w))
@@ -101,23 +99,9 @@ class LogisticRegression():
         return np.sum(self.predict(test_set.X) == test_set.y) / len(test_set.y)
     '''
 
-    def simple_logistic_model(self,w, input):
-        ''' logistic model without hidden layer
-        Args:
-            input, which dimention is M * (1 + d), means M pics each pixel number is d, appnded by 1
-            w, parameters, dimention of d + 1 * 1
-        Returns:
-            x, dimention of M * 1
-            
-        '''
-        x = np.dot(input, w)
-        x = 1/(1 + np.exp(-x)) 
-        return x
 
-    def simple_logistic_model_loss(self,model_output, input_vec, true_label):
-        loss = np.sum(true_label * np.log(model_output) \
-                    + (1 - true_label) * np.log(1 - model_output)) * -1
-        return loss.T
+
+
 
 
     def simple_logistic_model_gradient_descent(self,model_output, input_vec, true_label):
