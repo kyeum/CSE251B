@@ -44,12 +44,12 @@ def PCA_preprocess(k = 10, n_components = 40):
     projected, mean_image, sqrt_eigen_values, eigen_vectors  = prob.PCA_()
 
     # 4. The resulting projections and report the result
-    print('1. Projected Training set >> mean, std ', np.mean(projected), 'and', np.std(projected) * np.sqrt(projected.shape[0]))
+    print('1. Projected Training set >> mean, std ', np.mean(projected), 'and', np.std(projected))
     # Project the valid and test set
     valid_data = np.dot((valid_data - mean_image), eigen_vectors) / sqrt_eigen_values
-    print('2. Projected Validation set >> mean, std ', np.mean(valid_data), 'and',np.std(valid_data) * np.sqrt(projected.shape[0]))
+    print('2. Projected Validation set >> mean, std ', np.mean(valid_data), 'and',np.std(valid_data))
     test_data = np.dot((test_data - mean_image), eigen_vectors) / sqrt_eigen_values
-    print('3. Projected Test set >> mean, std ', np.mean(test_data), 'and',np.std(test_data) * np.sqrt(projected.shape[0]))
+    print('3. Projected Test set >> mean, std ', np.mean(test_data), 'and',np.std(test_data))
     prob.plot_PC()
 
 PCA_preprocess()
