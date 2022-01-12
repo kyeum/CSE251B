@@ -3,15 +3,11 @@ import os
 
 from traffic_reader import load_traffic
 
-
 def traffic_sign(aligned=True):
     if aligned:
-        return load_traffic('data', kind='aligned')
-    return load_traffic('data', kind='unaligned')
-
-
-
-load_data = traffic_sign
+        return load_traffic('data', kind='aligned') 
+    return load_traffic('data', kind='unaligned') 
+    # Image : (cnt, 32x32 byte = 1024) in one img data , 1 byte in one image data
 
 def z_score_normalize(X, u = None, sd = None):
     """
@@ -118,26 +114,53 @@ def append_bias(X):
     pass
 
 def generate_minibatches(dataset, batch_size=64):
-    X, y = dataset
+    Data, labels = dataset
     l_idx, r_idx = 0, batch_size
-    while r_idx < len(X):
-        yield X[l_idx:r_idx], y[l_idx:r_idx]
+    while r_idx < len(Data):
+        yield Data[l_idx:r_idx], labels[l_idx:r_idx]
         l_idx, r_idx = r_idx, r_idx + batch_size
 
-    yield X[l_idx:], y[l_idx:]
+    yield Data[l_idx:], labels[l_idx:]
 
-def generate_k_fold_set(dataset, k = 5): 
-    # Be sure to modify to include train/val/test
-    X, y = dataset
+def generate_k_fold_set(dataset, k = 10): 
+    """
+    Generate k fold sets.
+    Eact sets are split in to train/val/test mutually exclusive()
 
-    order = np.random.permutation(len(X))
+    Parameters
+    ----------
+    dataset(img : 32x32 = 1024, label : 41), 
+    k : int
+
+    Returns
+    -------
+    Traindata, TrainLabel, Testdata,TestLabel, Valdata, ValLabel
+    (ndarray :)
+    """
+    # Be sure to modify to include train/val/test and need to split train/val/test mutually exclusive(k-2/ 1/ 1)
+    Data, labels = dataset
     
-    fold_width = len(X) // k
-
-    l_idx, r_idx = 0, fold_width
-
-    for i in range(k):
-        train = np.concatenate([X[order[:l_idx]], X[order[r_idx:]]]), np.concatenate([y[order[:l_idx]], y[order[r_idx:]]])
-        validation = X[order[l_idx:r_idx]], y[order[l_idx:r_idx]]
-        yield train, validation
+    order = np.random.permutation(len(Data)) # suffle
+    fold_width = len(Data)//k # division with floor
+    l_idx, r_idx = 0, fold_width # one fold data length
+    # Training set : K-2, Validation set : 1, Test set : 1 first two sets are for validation, test, rest of them are for training
+    Traindata = []
+    TrainLabel = []
+    Valdata = []
+    ValLabel = []
+    Testdata = []
+    TestLabel = []
+    #only testing with first fold in the beginning -> update later 
+    for i in range(1):
+        split = fold_width//k
+        Valdata = (Data[order[l_idx:l_idx+split]])
+        ValLabel = (labels[order[l_idx:l_idx+split]]) # first sets
+        Testdata = (Data[order[l_idx+split:l_idx+split*2]])
+        TestLabel = (labels[order[l_idx+split:l_idx+split*2]])# second sets
+        Traindata = Data[order[l_idx+split*2:r_idx]]
+        TrainLabel = labels[order[l_idx+split*2:r_idx]]
         l_idx, r_idx = r_idx, r_idx + fold_width
+
+    return Traindata,TrainLabel,Valdata,ValLabel,Testdata,TestLabel
+
+#Traindata,TrainLabel,Valdata,ValLabel,Testdata,TestLabel = generate_k_fold_set(traffic_sign())

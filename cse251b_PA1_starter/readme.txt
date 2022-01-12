@@ -12,7 +12,7 @@ PCA (problem 4) : pca.py
 logistic regression(problem 5) : logistic_regression.py
 >> problem 5.logistic regression via gradient descent
 
-softmax regression(problem 6) : logistic_regression.py
+softmax regression(problem 6) : softmax_regression.py
 >> problem 5.softmax regression via gradient descent
 
 

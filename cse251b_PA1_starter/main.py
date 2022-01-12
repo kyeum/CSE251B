@@ -1,8 +1,12 @@
 import argparse
 import network
-from network import Network
 import data
+from network import Network
 from pca import PCA
+import numpy as np
+import os, random, sys
+import matplotlib.pyplot as plt
+from data import traffic_sign, generate_k_fold_set
 
 
 def main(hyperparameters):
@@ -27,3 +31,27 @@ parser.add_argument('--k-folds', type = int, default = 5,
 
 hyperparameters = parser.parse_args()
 main(hyperparameters)
+    
+def PCA_preprocess(k = 10, n_components = 40):
+    # Keep 3 different component numbers. 40, 100, 150
+    # 1. Init
+    load_data = traffic_sign()
+    # 2. Get train, valid and test set - only for first fold for training
+    train_data, train_label, valid_data, valid_label, test_data, test_label = generate_k_fold_set(load_data)
+
+    # 3. Apply the PCA - should only perform on the training set
+    prob = PCA(train_data, n_components)
+    projected, mean_image, sqrt_eigen_values, eigen_vectors  = prob.PCA_()
+
+    # 4. The resulting projections and report the result
+    print('1. Projected Training set >> mean, std ', np.mean(projected), 'and', np.std(projected) * np.sqrt(projected.shape[0]))
+    # Project the valid and test set
+    valid_data = np.dot((valid_data - mean_image), eigen_vectors) / sqrt_eigen_values
+    print('2. Projected Validation set >> mean, std ', np.mean(valid_data), 'and',np.std(valid_data) * np.sqrt(projected.shape[0]))
+    test_data = np.dot((test_data - mean_image), eigen_vectors) / sqrt_eigen_values
+    print('3. Projected Test set >> mean, std ', np.mean(test_data), 'and',np.std(test_data) * np.sqrt(projected.shape[0]))
+    prob.plot_PC()
+
+PCA_preprocess()
+
+

@@ -14,5 +14,4 @@ def load_traffic(path, kind='train', subclass=None):
 
     images, labels = train['features'], train['labels']
     images = images.reshape((images.shape[0], -1))
-
     return images, labels
