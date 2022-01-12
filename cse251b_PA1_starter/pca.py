@@ -84,7 +84,7 @@ class PCA:
         axs[1, 1].imshow(self.principal_eigen_vectors.T[3].real.reshape((32, 32)))
         plt.show()       
 
-    def PCA_(self) :
+    def PCA_Emmet(self) :
         #1. subtract the mean image from every image.
         self.mean_img = np.average(self.x, axis=0)
         msd = self.x - self.mean_img  # A = M x d ( M : number of Image, d : dimension of the Image(number of pixel)) = 2785 x  1024

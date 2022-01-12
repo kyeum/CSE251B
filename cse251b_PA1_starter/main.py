@@ -41,7 +41,7 @@ def PCA_preprocess(k = 10, n_components = 40):
 
     # 3. Apply the PCA - should only perform on the training set
     prob = PCA(train_data, n_components)
-    projected, mean_image, sqrt_eigen_values, eigen_vectors  = prob.PCA_()
+    projected, mean_image, sqrt_eigen_values, eigen_vectors  = prob.PCA_Emmet()
 
     # 4. The resulting projections and report the result
     print('1. Projected Training set >> mean, std ', np.mean(projected), 'and', np.std(projected))
