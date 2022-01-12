@@ -6,7 +6,7 @@ from pca import PCA
 import numpy as np
 import os, random, sys
 import matplotlib.pyplot as plt
-from data import traffic_sign, generate_k_fold_set
+from data import traffic_sign, generate_k_fold_set,select_binarydata
 
 
 def main(hyperparameters):
@@ -35,7 +35,8 @@ main(hyperparameters)
 def PCA_preprocess(k = 10, n_components = 40):
     # Keep 3 different component numbers. 40, 100, 150
     # 1. Init
-    load_data = traffic_sign()
+    aligned = True
+    load_data = traffic_sign(aligned)
     # 2. Get train, valid and test set - only for first fold for training
     train_data, train_label, valid_data, valid_label, test_data, test_label = generate_k_fold_set(load_data)
 

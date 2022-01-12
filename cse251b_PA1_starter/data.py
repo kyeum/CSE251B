@@ -3,11 +3,26 @@ import os
 
 from traffic_reader import load_traffic
 
-def traffic_sign(aligned=True):
+def traffic_sign(aligned):
     if aligned:
         return load_traffic('data', kind='aligned') 
     return load_traffic('data', kind='unaligned') 
     # Image : (cnt, 32x32 byte = 1024) in one img data , 1 byte in one image data
+
+def select_binarydata(dataset, class_a,class_b):
+    Data, labels = dataset
+    print(np.shape(Data),np.shape(labels))
+    #only save class a, and class b.
+    idx_class_a = np.where(labels == class_a)
+    idx_class_b = np.where(labels == class_b)
+    Data_class_a = Data[idx_class_a]
+    Data_class_b = Data[idx_class_b]
+
+    Data_ = np.concatenate([Data_class_a,Data_class_b])
+    label_ = np.concatenate([labels[idx_class_a],labels[idx_class_b]])
+    return   Data_ ,label_
+    # Image : (cnt, 32x32 byte = 1024) in one img data , 1 byte in one image data
+
 
 def z_score_normalize(X, u = None, sd = None):
     """
