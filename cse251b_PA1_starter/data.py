@@ -44,7 +44,11 @@ def z_score_normalize(X, u = None, sd = None):
             Transformed dataset with mean 0 and stdev 1
             Computed statistics (mean and stdev) for the dataset to undo z-scoring.
     """
-    pass
+    mu = np.mean(X, axis=0) # calculate mean for each feature col
+    sigma = np.std(X, axis=0) # calculate stddev for each feature col
+
+    X_norm = (x - mu) / sigma # normalize each feature col
+    return X_norm
 
 def min_max_normalize(X, _min = None, _max = None):
     """
@@ -63,7 +67,11 @@ def min_max_normalize(X, _min = None, _max = None):
             Transformed dataset with all values in [0,1]
             Computed statistics (min and max) for the dataset to undo min-max normalization.
     """
-    pass
+    min = np.min(X, axis=0) # calculate min for each feature col
+    max = np.max(X, axis=0) # calculate max for each feature col
+    fx = (X - min) / (max - min) # min_max_normalize each feature col
+
+    return fx, min, max
 
 def onehot_encode(y):
     """
@@ -81,7 +89,9 @@ def onehot_encode(y):
     -------
         2d array (shape n*k) with each row corresponding to a one-hot encoded version of the original value.
     """
-    pass
+    k = np.max(y) + 1
+    onehot_encoded = np.eye(k)[y]
+    return onehot_encoded
 
 def onehot_decode(y):
     """
@@ -99,7 +109,8 @@ def onehot_decode(y):
     -------
         1d array (length n) of targets (k)
     """
-    pass
+    indices = np.argmax(y, axis=0)
+    return indices
 
 def shuffle(dataset):
     """
@@ -123,7 +134,14 @@ def shuffle(dataset):
             Images (X)
             Labels (y)
     """
-    pass
+    X, y = dataset
+    # Shuffle the indices
+    indices = np.arange(len(X))
+    indices = np.random.shuffle(indices)
+    # Get images and labels according to shuffled indices
+    X = X[indices]
+    y = y[indices]
+    return (X, y)
 
 def append_bias(X):
     pass
