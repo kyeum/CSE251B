@@ -91,7 +91,7 @@ class PCA:
         #2. construct co-variance matrix. #outer product of the two column vector d -> covar = A * A.T
         cov_matrix = np.matmul(msd, msd.T) # 2785 x 2785 = M x M ( M x d * d x M)
         #3. Find eigenvalue, eigen vector
-        eigen_values, eigen_vectors = np.linalg.eig(cov_matrix)
+        eigen_values, eigen_vectors = np.linalg.eigh(cov_matrix)
         #4. Sort the eigen vectors with the largest eigenvalue -> first principal component
         # -1) sorting eigen value and eigenvector
         idx = eigen_values.argsort()[::-1]
@@ -101,14 +101,11 @@ class PCA:
         # -2) the Avi’s are actually the eigenvectors of the original huge matrix C
         # # map vector from original
         eigen_vectors = (np.matmul(msd.T, eigen_vectors)).T  # M x d
-        
+        print(np.shape(eigen_vectors))
         # -3) projection
         #self.normalized_eig_vecs = eigen_vectors / np.linalg.norm(eigen_vectors, 2, axis=0)
-        norm = np.sqrt(np.sum((eigen_vectors)**2, axis=-1))  # M
-        print(norm)
-        print((norm.reshape(-1, 1)))
-
-        self.normalized_eig_vecs = eigen_vectors / (norm.reshape(-1, 1)) # M x d
+        norm = np.sqrt(np.sum((eigen_vectors)**2, axis=-1)).reshape(-1,1)  # M
+        self.normalized_eig_vecs = eigen_vectors / norm # M x d
 
         self.principal_eigen_vectors = self.normalized_eig_vecs[:self.num_components].T
 
@@ -117,9 +114,8 @@ class PCA:
         
         #projection
         self.projected = np.matmul(msd, self.principal_eigen_vectors) / self.principal_sqrt_eigen_values
-     
         
-        return self.projected, self.mean_img,  self.principal_sqrt_eigen_values, self.principal_eigen_vectors
+        return self.projected
 
     def PCA_generate(self, data) :
         

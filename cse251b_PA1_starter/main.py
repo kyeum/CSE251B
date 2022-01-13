@@ -42,17 +42,17 @@ def PCA_preprocess(k = 10, n_components = 40):
 
     # 3. Apply the PCA - should only perform on the training set
     prob = PCA(train_data, n_components)
-    projected, mean_image, sqrt_eigen_values, eigen_vectors  = prob.PCA_Emmet()
+    projected  = prob.PCA_Emmet()
 
     # 4. The resulting projections and report the result
-    print('1. Projected Training set >> mean, std is ', np.mean(projected), 'and', np.std(projected)*np.sqrt(projected.shape[0]))
+    print('1. Training set >> mean : ', np.mean(projected), 'std : ', np.std(projected)*np.sqrt(projected.shape[0]))
     # Project the valid and test set
-    valid_data = np.dot((valid_data - mean_image), eigen_vectors) / sqrt_eigen_values 
-    print('2. Projected Validation set >> mean, std is ', np.mean(valid_data), 'and',np.std(valid_data)* np.sqrt(projected.shape[0]))
-    test_data = np.dot((test_data - mean_image), eigen_vectors) / sqrt_eigen_values
-    print('3. Projected Test set >> mean, std is ', np.mean(test_data), 'and',np.std(test_data)* np.sqrt(projected.shape[0]))
+    valid_data = prob.PCA_generate(valid_data)
+    print('2. Validation set >> mean : ', np.mean(valid_data), 'std : ',np.std(valid_data)* np.sqrt(projected.shape[0]))
+    test_data = prob.PCA_generate(test_data)
+    print('3. Test set >> mean : ', np.mean(test_data), 'std : ',np.std(test_data)* np.sqrt(projected.shape[0]))
     #prob.plot_PC()
-    print(np.sqrt(projected.shape[0]))
+    #print(np.sqrt(projected.shape[0]))
 
 PCA_preprocess()
 
