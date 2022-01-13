@@ -78,21 +78,3 @@ class LogisticRegression():
         correct = np.sum(y_round == y_t)
         accuracy = correct / y.shape[0]
         return accuracy
-
-
-    def simple_logistic_model_gradient_descent(self,model_output, input_vec, true_label):
-        '''
-        Args:
-            model_output : calculated result
-            input_vec : input image
-            true_label : true category
-
-        Returns:
-            dw :gradient descent
-        '''
-        N = model_output.shape[0]
-        # convert true label vector into binary
-        tn = true_label.reshape((len(model_output), 1))
-        #calculate the gradient
-        dw = np.sum(np.dot((tn - model_output).T, input_vec), axis = 0, keepdims= True) / N
-        return dw.T
