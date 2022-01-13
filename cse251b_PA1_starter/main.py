@@ -6,7 +6,7 @@ from pca import PCA
 import numpy as np
 import os, random, sys
 import matplotlib.pyplot as plt
-from data import traffic_sign, generate_k_fold_set,select_binarydata
+from data import traffic_sign, generate_k_fold_set,select_binarydata,generate_no_fold_set
 
 
 def main(hyperparameters):
@@ -38,8 +38,10 @@ def PCA_preprocess(k = 10, n_components = 40):
     aligned = True
     load_data = traffic_sign(aligned)
     # 2. Get train, valid and test set - only for first fold for training
-    train_data, train_label, valid_data, valid_label, test_data, test_label = generate_k_fold_set(load_data)
+    train_data, train_label, valid_data, valid_label, test_data, test_label = generate_no_fold_set(load_data)
+    print(train_data)
 
+    
     # 3. Apply the PCA - should only perform on the training set
     prob = PCA(train_data, n_components)
     projected  = prob.PCA_Emmet()
@@ -51,8 +53,8 @@ def PCA_preprocess(k = 10, n_components = 40):
     print('2. Validation set >> mean : ', np.mean(valid_data), 'std : ',np.std(valid_data)* np.sqrt(projected.shape[0]))
     test_data = prob.PCA_generate(test_data)
     print('3. Test set >> mean : ', np.mean(test_data), 'std : ',np.std(test_data)* np.sqrt(projected.shape[0]))
-    #prob.plot_PC()
-    #print(np.sqrt(projected.shape[0]))
+    prob.plot_PC()
+
 
 PCA_preprocess()
 

@@ -215,7 +215,7 @@ def generate_no_fold_set(dataset, k = 1):
     # Be sure to modify to include train/val/test and need to split train/val/test mutually exclusive(k-2/ 1/ 1)
     Data, labels = dataset
     order = np.random.permutation(len(Data)) # suffle
-    fold_width = len(Data) # division with floor
+    fold_width = len(Data)//10 # division with floor
     l_idx, r_idx = 0, fold_width # one fold data length
     # Training set : K-2, Validation set : 1, Test set : 1 first two sets are for validation, test, rest of them are for training
     Traindata = []
@@ -225,15 +225,13 @@ def generate_no_fold_set(dataset, k = 1):
     Testdata = []
     TestLabel = []
     #only testing with first fold in the beginning -> update later 
-    for i in range(1):
-        split = fold_width
-        Valdata = (Data[order[l_idx:l_idx+split]])
-        ValLabel = (labels[order[l_idx:l_idx+split]]) # first sets
-        Testdata = (Data[order[l_idx+split:l_idx+split*2]])
-        TestLabel = (labels[order[l_idx+split:l_idx+split*2]])# second sets
-        Traindata = Data[order[l_idx+split*2:r_idx]]
-        TrainLabel = labels[order[l_idx+split*2:r_idx]]
-        l_idx, r_idx = r_idx, r_idx + fold_width
+    split = fold_width
+    Valdata = (Data[order[l_idx:l_idx+split]])
+    ValLabel = (labels[order[l_idx:l_idx+split]]) # first sets
+    Testdata = (Data[order[l_idx+split:l_idx+split*2]])
+    TestLabel = (labels[order[l_idx+split:l_idx+split*2]])# second sets
+    Traindata = Data[order[l_idx+split*2:]]
+    TrainLabel = labels[order[l_idx+split*2:]]
 
     return Traindata,TrainLabel,Valdata,ValLabel,Testdata,TestLabel
 
