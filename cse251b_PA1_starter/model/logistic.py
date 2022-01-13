@@ -18,21 +18,17 @@ class LogisticRegression():
         #learning rate
         self.lr = lr
 
-    def logistic_model(self,w,   x: np.ndarray) -> np.ndarray:
+    def logistic_model(self, w,   x):
         ''' 
-        logistic model forward
-
-        Args
-
-        x: input data, which dimention is (M, d), means M pics each pixel number is d
+        x :  M x (d + 1)
+        w :  (d + 1) x 1
 
         Returns
-
         y: dimention of (M, 1)
         '''
-        x = np.append(x, np.ones((x.shape[0], 1)), axis=1)
-        x = np.dot(w,x.T)
-        res = 1 / (1 + np.exp(-x)) # actvation
+        x = np.append(x, np.ones((x.shape[0], 1)), axis=1)  #add 1 for x0
+        x = np.dot(x,w.T)
+        res = 1 / (1 + np.exp(-x)) # actvation fnc
         return res
 
     def loss_binary(self, y, true_y) :
@@ -49,13 +45,11 @@ class LogisticRegression():
 
         loss: loss value
         '''
-        cross_entropy_loss = -np.mean(true_y * np.log(y) + (1 - true_y) * np.log(1 - y))
+        cross_entropy_loss = -np.sum(true_y * np.log(y) + (1 - true_y) * np.log(1 - y))
         return cross_entropy_loss
 
-    def update_weight(self, w, x: np.ndarray, y: np.ndarray, true_y: np.ndarray) -> None:
+    def update_weight(self, w, x, y, true_y):
         '''
-        logistic model backward
-
         Args
 
         x: input data, which dimention is (M, d), means M pics each pixel number is d
@@ -67,7 +61,7 @@ class LogisticRegression():
         x = np.append(x, np.ones((x.shape[0], 1)), axis=1) #add 1 for x0
 
         gradient = np.dot((true_y - y) , x)
-        w += self.lr * gradient
+        w = w + self.lr * gradient
         return w
 
     def check_accuracy(self,y, y_t):

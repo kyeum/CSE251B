@@ -155,7 +155,7 @@ def generate_minibatches(dataset, batch_size=64):
 
     yield Data[l_idx:], labels[l_idx:]
 
-def generate_k_fold_set(dataset, k = 10): 
+def generate_k_fold_set(dataset, k=10): 
     """
     Generate k fold sets.
     Eact sets are split in to train/val/test mutually exclusive()
@@ -175,27 +175,21 @@ def generate_k_fold_set(dataset, k = 10):
     Data, labels = dataset
     
     order = np.random.permutation(len(Data)) # suffle
-    fold_width = len(Data)//k # division with floor
+    fold_width = len(Data)//10 # division with floor
     l_idx, r_idx = 0, fold_width # one fold data length
     # Training set : K-2, Validation set : 1, Test set : 1 first two sets are for validation, test, rest of them are for training
-    Traindata = []
-    TrainLabel = []
-    Valdata = []
-    ValLabel = []
-    Testdata = []
-    TestLabel = []
-    #only testing with first fold in the beginning -> update later 
-    for i in range(1):
-        split = fold_width//k
-        Valdata = (Data[order[l_idx:l_idx+split]])
-        ValLabel = (labels[order[l_idx:l_idx+split]]) # first sets
-        Testdata = (Data[order[l_idx+split:l_idx+split*2]])
-        TestLabel = (labels[order[l_idx+split:l_idx+split*2]])# second sets
-        Traindata = Data[order[l_idx+split*2:r_idx]]
-        TrainLabel = labels[order[l_idx+split*2:r_idx]]
-        l_idx, r_idx = r_idx, r_idx + fold_width
 
-    return Traindata,TrainLabel,Valdata,ValLabel,Testdata,TestLabel
+    #only testing with first fold in the beginning -> update later 
+    l_idx = 0
+    m_idx = 1 * fold_width
+    r_idx = 2 * fold_width
+    
+    for i in range(k):
+        train = np.concatenate([Data[order[:l_idx]], Data[order[r_idx:]]]), np.concatenate([labels[order[:l_idx]], labels[order[r_idx:]]])
+        validation = Data[order[l_idx:m_idx]], labels[order[l_idx:m_idx]]
+        test = Data[order[m_idx:r_idx]], labels[order[m_idx:r_idx]]
+        yield train, validation, test
+        l_idx, m_idx, r_idx = m_idx, m_idx + fold_width, (r_idx + fold_width) % fold_width
 
 def generate_no_fold_set(dataset, k = 1): 
     """
