@@ -31,11 +31,10 @@ class LogisticRegression():
         y: dimention of (M, 1)
         '''
         x = np.append(x, np.ones((x.shape[0], 1)), axis=1)
-        x = np.dot(w,x.T)
-        res = 1 / (1 + np.exp(-x)) # actvation
-        return res
+        x = w @ x.T
+        return 1 / (1 + np.exp(-x))
 
-    def loss_binary(self, y, true_y) :
+    def loss(self, y: np.ndarray, true_y: np.ndarray) -> int:
         '''
         calculate the loss using cross-entropy cost function
 
@@ -49,8 +48,14 @@ class LogisticRegression():
 
         loss: loss value
         '''
-        cross_entropy_loss = -np.mean(true_y * np.log(y) + (1 - true_y) * np.log(1 - y))
-        return cross_entropy_loss
+
+        return -np.mean(true_y * np.log(y) + (1 - true_y) * np.log(1 - y))
+
+
+    def simple_logistic_model_loss(self,model_output, input_vec, true_label):
+        loss = np.sum(true_label * np.log(model_output) \
+                    + (1 - true_label) * np.log(1 - model_output)) * -1
+        return loss.T
 
     def update_weight(self, w, x: np.ndarray, y: np.ndarray, true_y: np.ndarray) -> None:
         '''
@@ -66,7 +71,7 @@ class LogisticRegression():
         '''
         x = np.append(x, np.ones((x.shape[0], 1)), axis=1) #add 1 for x0
 
-        gradient = np.dot((true_y - y) , x)
+        gradient = (true_y - y) @ x
         w += self.lr * gradient
         return w
 
@@ -78,6 +83,25 @@ class LogisticRegression():
         correct = np.sum(y_round == y_t)
         accuracy = correct / y.shape[0]
         return accuracy
+
+    '''
+    def loss(self, X, y):
+        y_hat = self.logistic(np.dot(X, self.w))
+        return (- np.dot(y.T, np.log(y_hat)) / len(y_hat))[0][0]
+
+    def gradient(self, X, y):
+        y_hat = self.logistic(np.dot(X, self.w))
+        return np.sum((y_hat - y) * X, axis=0).reshape(-1, 1)
+
+    def accuracy(self, test_set=None):
+        if not test_set:
+            test_set = self.test_set
+        return np.sum(self.predict(test_set.X) == test_set.y) / len(test_set.y)
+    '''
+
+
+
+
 
 
     def simple_logistic_model_gradient_descent(self,model_output, input_vec, true_label):
