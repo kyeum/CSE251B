@@ -36,7 +36,7 @@ def z_score_normalize(X, u = None, sd = None):
     Parameters
     ----------
     X : np.array
-        The data to min-max normalize
+        The data to z-score normalize
 
     Returns
     -------
@@ -47,7 +47,7 @@ def z_score_normalize(X, u = None, sd = None):
     mu = np.mean(X, axis=0) # calculate mean for each feature col
     sigma = np.std(X, axis=0) # calculate stddev for each feature col
 
-    X_norm = (x - mu) / sigma # normalize each feature col
+    X_norm = (X - mu) / sigma # normalize each feature col
     return X_norm
 
 def min_max_normalize(X, _min = None, _max = None):
@@ -109,7 +109,7 @@ def onehot_decode(y):
     -------
         1d array (length n) of targets (k)
     """
-    indices = np.argmax(y, axis=0)
+    indices = np.argmax(y, axis=1)
     return indices
 
 def shuffle(dataset):
@@ -174,8 +174,8 @@ def generate_k_fold_set(dataset, k=10):
     # Be sure to modify to include train/val/test and need to split train/val/test mutually exclusive(k-2/ 1/ 1)
     Data, labels = dataset
     
-    order = np.random.permutation(len(Data)) # suffle
-    fold_width = len(Data)//10 # division with floor
+    order = np.random.permutation(len(Data)) # shuffle
+    fold_width = len(Data) // k # division with floor
     l_idx, r_idx = 0, fold_width # one fold data length
     # Training set : K-2, Validation set : 1, Test set : 1 first two sets are for validation, test, rest of them are for training
 
@@ -211,6 +211,7 @@ def generate_no_fold_set(dataset, k = 1):
     order = np.random.permutation(len(Data)) # suffle
     fold_width = len(Data)//10 # division with floor
     l_idx, r_idx = 0, fold_width # one fold data length
+    print("FOLDWIDTH:", fold_width)
     # Training set : K-2, Validation set : 1, Test set : 1 first two sets are for validation, test, rest of them are for training
     Traindata = []
     TrainLabel = []

@@ -14,7 +14,7 @@ class PCA:
     For the visualization of the principal components, use the internal 
     parameters that are set in `fit`.
     """
-    def __init__(self, x: np.ndarray, num_components):
+    def __init__(self, num_components):
         """
         Setup the PCA object. 
 
@@ -26,7 +26,6 @@ class PCA:
         ----------    
         """
         self.num_components = num_components
-        self.x = x
 
     
     def fit(self, X):
@@ -38,9 +37,37 @@ class PCA:
         X : np.array
             Training data to fit internal parameters.
         """
+        #1. subtract the mean image from every image.
+        self.mean_img = np.average(X, axis=0)
+        msd = X - self.mean_img  # A = M x d ( M : number of Image, d : dimension of the Image(number of pixel)) = 2785 x  1024
+        #2. construct co-variance matrix. #outer product of the two column vector d -> covar = A * A.T
+        # Use Turk Pentland Trick (A^T * A)
+        cov_matrix = np.dot(msd.T, msd) # 1024 x 1024 = d x d ( d x M * M x d)
+        # cov_matrix = np.cov(msd.T)
+        #3. Find eigenvalue, eigen vector
+        eigen_values, eigen_vectors = np.linalg.eigh(cov_matrix)
+        # Get eigenvectors of A
+        # u_i = A * v_i
+        eigen_vectors = np.dot(msd, eigen_vectors)
 
-        pass
+        #4. Sort the eigen vectors with the largest eigenvalue -> first principal component
+        # -1) sorting eigen value and eigenvector
+        idx = eigen_values.argsort()[::-1]
+        eigen_values = eigen_values[idx]
+        eigen_vectors = eigen_vectors[:,idx]
 
+        # -2) the Avi’s are actually the eigenvectors of the original huge matrix C
+        # # map vector from original
+        eigen_vectors = (np.matmul(msd.T, eigen_vectors)).T  # M x d
+        # -3) projection
+        #self.normalized_eig_vecs = eigen_vectors / np.linalg.norm(eigen_vectors, 2, axis=0)
+        norm = np.sqrt(np.sum((eigen_vectors)**2, axis=-1)).reshape(-1,1)  # M
+        self.normalized_eig_vecs = eigen_vectors / norm # M x d
+
+        self.principal_eigen_vectors = self.normalized_eig_vecs[:self.num_components].T
+
+        #5. divide by the standard deviation of the projections, which is the square root of the eigenvalue
+        self.principal_sqrt_eigen_values = np.sqrt(eigen_values[:self.num_components])
 
     def transform(self, X):
         """
@@ -58,13 +85,16 @@ class PCA:
         -------
             Transformed dataset with lower dimensionality
         """
-
-        pass
+        X = X - self.mean_img
+        # Project
+        projected = np.matmul(X, self.principal_eigen_vectors) / self.principal_sqrt_eigen_values
+        
+        return projected
 
 
     def fit_transform(self, X):
         self.fit(X)
-        pass 
+        return self.transform(X)
 
     def plot_PC(self):
         '''
@@ -84,12 +114,12 @@ class PCA:
         axs[1, 1].imshow(self.principal_eigen_vectors.T[3].real.reshape((32, 32)))
         plt.show()       
 
-    def PCA_Emmet(self) :
+    def PCA_Emmet(self, X) :
         #1. subtract the mean image from every image.
-        self.mean_img = np.average(self.x, axis=0)
-        msd = self.x - self.mean_img  # A = M x d ( M : number of Image, d : dimension of the Image(number of pixel)) = 2785 x  1024
+        self.mean_img = np.average(X, axis=0)
+        msd = X - self.mean_img  # A = M x d ( M : number of Image, d : dimension of the Image(number of pixel)) = 2785 x  1024
         #2. construct co-variance matrix. #outer product of the two column vector d -> covar = A * A.T
-        cov_matrix = np.matmul(msd, msd.T) # 2785 x 2785 = M x M ( M x d * d x M)
+        cov_matrix = np.dot(msd, msd.T) # 2785 x 2785 = M x M ( M x d * d x M)
         #3. Find eigenvalue, eigen vector
         eigen_values, eigen_vectors = np.linalg.eigh(cov_matrix)
         #4. Sort the eigen vectors with the largest eigenvalue -> first principal component
