@@ -1,4 +1,5 @@
 import numpy as np
+from data import onehot_decode, onehot_encode
 
 
 class LogisticRegression():
@@ -33,20 +34,19 @@ class LogisticRegression():
 
     def loss_binary(self, y, true_y) :
         '''
-        calculate the loss using cross-entropy cost function
+        cross-entropy cost function
 
-        args
+        y: (M, 1)
 
-        y: forward result, dimention of (M, 1)
-
-        true_y: true result, dimention of (M, 1)
+        true_y: true result (M, 1)
 
         Returns
-
         loss: loss value
         '''
-        cross_entropy_loss = -np.sum(true_y * np.log(y) + (1 - true_y) * np.log(1 - y))
-        return cross_entropy_loss
+        loss = -np.sum(true_y * np.log(y) + (1 - true_y) * np.log(1 - y))
+        return loss
+
+
 
     def update_weight(self, w, x, y, true_y):
         '''
@@ -72,3 +72,24 @@ class LogisticRegression():
         correct = np.sum(y_round == y_t)
         accuracy = correct / y.shape[0]
         return accuracy
+
+    '''
+    def predict(self, X):
+        probs = self.logistic(np.dot(X, self.w))
+        prediction = np.zeros(probs.shape)
+        prediction[probs > 0.5] = 1
+        return prediction
+
+    def loss(self, X, y):
+        y_hat = self.logistic(np.dot(X, self.w))
+        return (- np.dot(y.T, np.log(y_hat)) / len(y_hat))[0][0]
+
+    def gradient(self, X, y):
+        y_hat = self.logistic(np.dot(X, self.w))
+        return np.sum((y_hat - y) * X, axis=0).reshape(-1, 1)
+
+    def accuracy(self, test_set=None):
+        if not test_set:
+            test_set = self.test_set
+        return np.sum(self.predict(test_set.X) == test_set.y) / len(test_set.y)
+    '''

@@ -231,3 +231,15 @@ def generate_no_fold_set(dataset, k = 1):
     return Traindata,TrainLabel,Valdata,ValLabel,Testdata,TestLabel
 
 #Traindata,TrainLabel,Valdata,ValLabel,Testdata,TestLabel = generate_k_fold_set(traffic_sign())
+
+def Balance_data(dataset, k=10): 
+    
+    Data, labels = dataset
+    print(len(labels))
+    #print(np.shape(dataset))
+
+
+
+
+    return 0
+

@@ -36,22 +36,21 @@ def PCA_preprocess(k = 10, n_components = 40):
     # Keep 3 different component numbers. 40, 100, 150
     # 1. Init
     aligned = True
-    load_data = traffic_sign(aligned)
+    load_data = traffic_sign(True)
     # 2. Get train, valid and test set - only for first fold for training
     train_data, train_label, valid_data, valid_label, test_data, test_label = generate_no_fold_set(load_data)
-    print(train_data)
-
     
     # 3. Apply the PCA - should only perform on the training set
-    prob = PCA(train_data, n_components)
-    projected  = prob.PCA_Emmet()
+    prob = PCA(n_components)
+    #projected  = prob.PCA_Emmet(),#PCA_generate
+    projected  = prob.fit_transform(train_data)
 
     # 4. The resulting projections and report the result
     print('1. Training set >> mean : ', np.mean(projected), 'std : ', np.std(projected)*np.sqrt(projected.shape[0]))
     # Project the valid and test set
-    valid_data = prob.PCA_generate(valid_data)
+    valid_data = prob.transform(valid_data)
     print('2. Validation set >> mean : ', np.mean(valid_data), 'std : ',np.std(valid_data)* np.sqrt(projected.shape[0]))
-    test_data = prob.PCA_generate(test_data)
+    test_data = prob.transform(test_data)
     print('3. Test set >> mean : ', np.mean(test_data), 'std : ',np.std(test_data)* np.sqrt(projected.shape[0]))
     prob.plot_PC()
 

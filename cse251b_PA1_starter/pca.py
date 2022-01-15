@@ -131,7 +131,6 @@ class PCA:
         # -2) the Avi’s are actually the eigenvectors of the original huge matrix C
         # # map vector from original
         eigen_vectors = (np.matmul(msd.T, eigen_vectors)).T  # M x d
-        print(np.shape(eigen_vectors))
         # -3) projection
         #self.normalized_eig_vecs = eigen_vectors / np.linalg.norm(eigen_vectors, 2, axis=0)
         norm = np.sqrt(np.sum((eigen_vectors)**2, axis=-1)).reshape(-1,1)  # M
