@@ -44,8 +44,10 @@ class SoftmaxRegression():
 
         Returns cross entropy without being averaged over examples or categories
         '''
+        epsilon = 1e-5
+
         y_true = onehot_decode(y_true)
-        ce = np.log(y_hat[range(len(y_hat)), y_true])
+        ce = np.log(y_hat[range(len(y_hat)), y_true] + epsilon)
         return -np.sum(ce)
 
     def update_weights(self, X, y_true, y_hat):
