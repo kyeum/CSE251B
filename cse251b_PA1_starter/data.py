@@ -23,21 +23,40 @@ def select_binarydata(dataset, class_a,class_b):
     return   Data_ ,label_
     # Image : (cnt, 32x32 byte = 1024) in one img data , 1 byte in one image data
 
+
 def balance_data(dataset):
     Data, labels = dataset
-    print(np.shape(Data),np.shape(labels))
-    #only save class a, and class b.
-    idx_class_a = np.where(labels == 1)
-    idx_class_b = np.where(labels == 2)
-    Data_class_a = Data[idx_class_a]
-    Data_class_b = Data[idx_class_b]
+    #top 6 image sets drop -> lowest 6 image sets duplicate
+    cnt_array = np.bincount(labels)
+    
+    # sort. higher data remove, find top 5 
+    top5 = (cnt_array.argsort()[-6:][::-1])
+    for i in range(np.size(top5)):
+        # 5 higher data remove 5%, 5 lowest data duplicate
+        idx_high = np.where(labels == top5[i])
+        k = np.array(idx_high)[0,1:np.size(idx_high)//5] 
+        Data = np.delete(Data,  k)
+        labels = np.delete(labels,  k)
+      
+    # sort. higher data remove, find top 5 
+    low5 = (cnt_array.argsort()[1:7][::-1])
+    
 
-    Data_ = np.concatenate([Data_class_a,Data_class_b])
-    label_ = np.concatenate([labels[idx_class_a],labels[idx_class_b]])
-    return   Data_ ,label_
-    # Image : (cnt, 32x32 byte = 1024) in one img data , 1 byte in one image data
+    for i in range(np.size(low5)):
+        # 5 higher data remove 5%, 5 lowest data duplicate
+        idx_low = np.where(labels == low5[i])
+        k = np.array(idx_low)[0,1:np.size(idx_low)//1]
+        Data = np.concatenate([Data[:],  Data[k]])
+        labels = np.concatenate([labels[:], labels[k]])
+         
+    cnt_array_balance = np.bincount(labels)
+   
+    return   cnt_array, cnt_array_balance, Data, labels
 
 
+
+
+    
 def z_score_normalize(X, u = None, sd = None):
     """
     Performs z-score normalization on X. 
