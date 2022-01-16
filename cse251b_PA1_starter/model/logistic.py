@@ -44,7 +44,7 @@ class LogisticRegression():
         loss: loss value
         '''
         
-        loss = -np.sum(true_y * np.log(y) + (1 - true_y) * np.log(1 - y))
+        loss = -(np.sum(true_y * np.log(y) + (1 - true_y) * np.log(1 - y)))/np.size(y)
         return loss
 
 
