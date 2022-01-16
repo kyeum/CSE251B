@@ -185,11 +185,25 @@ def generate_k_fold_set(dataset, k=10):
     r_idx = 2 * fold_width
     
     for i in range(k):
-        train = np.concatenate([Data[order[:l_idx]], Data[order[r_idx:]]]), np.concatenate([labels[order[:l_idx]], labels[order[r_idx:]]])
-        validation = Data[order[l_idx:m_idx]], labels[order[l_idx:m_idx]]
-        test = Data[order[m_idx:r_idx]], labels[order[m_idx:r_idx]]
+        if r_idx < l_idx : 
+            if l_idx < m_idx : 
+                print("1")
+                train = Data[order[r_idx:l_idx]], labels[order[r_idx:l_idx]]
+                validation = Data[order[l_idx:m_idx]], labels[order[l_idx:m_idx]]
+                test = np.concatenate([Data[order[:r_idx]], Data[order[m_idx:]]]), np.concatenate([labels[order[:r_idx]], labels[order[m_idx:]]])
+                
+            else : 
+                print("2")
+                train = Data[order[r_idx: l_idx]], labels[order[r_idx: l_idx]]
+                validation = np.concatenate([Data[order[:m_idx]], Data[order[l_idx:]]]),np.concatenate([labels[order[:m_idx]], labels[order[l_idx:]]])
+                test = Data[order[m_idx:r_idx]], labels[order[m_idx:r_idx]]  
+        else :
+            train = np.concatenate([Data[order[:l_idx]], Data[order[r_idx:]]]), np.concatenate([labels[order[:l_idx]], labels[order[r_idx:]]])
+            validation = Data[order[l_idx:m_idx]], labels[order[l_idx:m_idx]]
+            test = Data[order[m_idx:r_idx]], labels[order[m_idx:r_idx]]                
+
         yield train, validation, test
-        l_idx, m_idx, r_idx = m_idx, m_idx + fold_width, (r_idx + fold_width) % fold_width
+        l_idx, m_idx, r_idx = (l_idx + fold_width)% len(Data), (m_idx + fold_width )% len(Data), (r_idx + fold_width) % len(Data)
 
 def generate_no_fold_set(dataset, k = 1): 
     """

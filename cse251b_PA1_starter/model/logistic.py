@@ -43,6 +43,7 @@ class LogisticRegression():
         Returns
         loss: loss value
         '''
+        
         loss = -np.sum(true_y * np.log(y) + (1 - true_y) * np.log(1 - y))
         return loss
 
@@ -68,10 +69,12 @@ class LogisticRegression():
         '''
         accuracy for logistic regression
         '''
-        y_round = np.round(y)
-        correct = np.sum(y_round == y_t)
-        accuracy = correct / y.shape[0]
-        return accuracy
+        y_checkprob = np.zeros(y.shape)
+        y_checkprob[y > 0.5] = 1
+        #y_round = np.round(y)
+        correct = np.sum(y_checkprob == y_t)
+        return correct / y_t.shape[0]
+
 
     '''
     def predict(self, X):
@@ -80,13 +83,7 @@ class LogisticRegression():
         prediction[probs > 0.5] = 1
         return prediction
 
-    def loss(self, X, y):
-        y_hat = self.logistic(np.dot(X, self.w))
-        return (- np.dot(y.T, np.log(y_hat)) / len(y_hat))[0][0]
-
-    def gradient(self, X, y):
-        y_hat = self.logistic(np.dot(X, self.w))
-        return np.sum((y_hat - y) * X, axis=0).reshape(-1, 1)
+   
 
     def accuracy(self, test_set=None):
         if not test_set:
