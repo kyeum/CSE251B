@@ -32,7 +32,14 @@ class SoftmaxRegression():
         '''
         Model Network for Softmax Regression
         '''
-        logits = np.dot(X, self.W)
+        logits = np.dot(X, self.W) + self.b
+        return self.softmax(logits)
+
+    def model_w(self, X, W, b):
+        '''
+        Model Network for Softmax Regression w/ given weights and bias
+        '''
+        logits = np.dot(X, W) + b
         return self.softmax(logits)
 
     def cross_entropy(self, y_true, y_hat):
