@@ -23,6 +23,20 @@ def select_binarydata(dataset, class_a,class_b):
     return   Data_ ,label_
     # Image : (cnt, 32x32 byte = 1024) in one img data , 1 byte in one image data
 
+def balance_data(dataset):
+    Data, labels = dataset
+    print(np.shape(Data),np.shape(labels))
+    #only save class a, and class b.
+    idx_class_a = np.where(labels == 1)
+    idx_class_b = np.where(labels == 2)
+    Data_class_a = Data[idx_class_a]
+    Data_class_b = Data[idx_class_b]
+
+    Data_ = np.concatenate([Data_class_a,Data_class_b])
+    label_ = np.concatenate([labels[idx_class_a],labels[idx_class_b]])
+    return   Data_ ,label_
+    # Image : (cnt, 32x32 byte = 1024) in one img data , 1 byte in one image data
+
 
 def z_score_normalize(X, u = None, sd = None):
     """

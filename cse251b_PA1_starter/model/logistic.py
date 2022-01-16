@@ -41,7 +41,7 @@ class LogisticRegression():
         true_y: true result (M, 1)
 
         Returns
-        loss: loss value
+        loss: (M,1)
         '''
         
         loss = -(np.sum(true_y * np.log(y) + (1 - true_y) * np.log(1 - y)))/np.size(y)
@@ -74,19 +74,3 @@ class LogisticRegression():
         #y_round = np.round(y)
         correct = np.sum(y_checkprob == y_t)
         return correct / y_t.shape[0]
-
-
-    '''
-    def predict(self, X):
-        probs = self.logistic(np.dot(X, self.w))
-        prediction = np.zeros(probs.shape)
-        prediction[probs > 0.5] = 1
-        return prediction
-
-   
-
-    def accuracy(self, test_set=None):
-        if not test_set:
-            test_set = self.test_set
-        return np.sum(self.predict(test_set.X) == test_set.y) / len(test_set.y)
-    '''
