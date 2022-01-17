@@ -10,16 +10,13 @@ class LogisticRegression():
     def __init__(self, lr):
         '''
         Args
-
-        size: the size of input, should be n_components
-        class_size: number of classes, should be 4
         lr: learning rate
         '''
         #size of the weight -> initialize to random
         #learning rate
         self.lr = lr
 
-    def logistic_model(self, w,   x):
+    def logistic_model(self, w, x,b):
         ''' 
         x :  M x (d + 1)
         w :  (d + 1) x 1
@@ -27,15 +24,16 @@ class LogisticRegression():
         Returns
         y: dimention of (M, 1)
         '''
-        x = np.append(x, np.ones((x.shape[0], 1)), axis=1)  #add 1 for x0
-        x = np.dot(x,w.T)
+        x = np.append(x, np.ones((x.shape[0], 1)), axis=1) #add 1 for x0
+        w[-1] = b
+        x = np.dot(x,w.T) 
         res = 1 / (1 + np.exp(-x)) # actvation fnc
         return res
+
 
     def loss_binary(self, y, true_y) :
         '''
         cross-entropy cost function
-
         y: (M, 1)
 
         true_y: true result (M, 1)
@@ -43,13 +41,13 @@ class LogisticRegression():
         Returns
         loss: (M,1)
         '''
-        
         loss = -(np.sum(true_y * np.log(y) + (1 - true_y) * np.log(1 - y)))/np.size(y)
         return loss
 
 
 
-    def update_weight(self, w, x, y, true_y):
+
+    def update_weight(self, w, b,x, y, true_y):
         '''
         Args
 
@@ -59,11 +57,16 @@ class LogisticRegression():
 
         true_y: true result, dimention of (M, 1)
         '''
-        x = np.append(x, np.ones((x.shape[0], 1)), axis=1) #add 1 for x0
 
         gradient = np.dot((true_y - y) , x)
-        w = w + self.lr * gradient
-        return w
+        
+        #x = np.append(x, np.ones((x.shape[0], 1)), axis=1) #add 1 for x0
+
+        gradient_b = np.sum((true_y - y))
+        b = b + self.lr * gradient_b
+        w[-1] = b
+        w [:-1] += self.lr * gradient
+        return w, b
 
     def check_accuracy(self,y, y_t):
         '''
@@ -71,6 +74,5 @@ class LogisticRegression():
         '''
         y_checkprob = np.zeros(y.shape)
         y_checkprob[y > 0.5] = 1
-        #y_round = np.round(y)
         correct = np.sum(y_checkprob == y_t)
         return correct / y_t.shape[0]
