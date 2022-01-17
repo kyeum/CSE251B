@@ -7,7 +7,7 @@ class LogisticRegression():
     Logistic Regression
     '''
 
-    def __init__(self, lr):
+    def __init__(self, lr,components):
         '''
         Args
         lr: learning rate
@@ -15,6 +15,7 @@ class LogisticRegression():
         #size of the weight -> initialize to random
         #learning rate
         self.lr = lr
+        self.b = np.zeros((1, components)) 
 
     def logistic_model(self, w, x,b):
         ''' 
@@ -24,9 +25,12 @@ class LogisticRegression():
         Returns
         y: dimention of (M, 1)
         '''
-        x = np.append(x, np.ones((x.shape[0], 1)), axis=1) #add 1 for x0
-        w[-1] = b
-        x = np.dot(x,w.T) 
+        #x = np.append(x, np.ones((x.shape[0], 1)), axis=1) #add 1 for x0
+        #w[-1] = b
+        #x = np.dot(x,w.T) 
+
+        x = np.dot(x, w.T) + b
+
         res = 1 / (1 + np.exp(-x)) # actvation fnc
         return res
 
@@ -58,14 +62,14 @@ class LogisticRegression():
         true_y: true result, dimention of (M, 1)
         '''
 
-        gradient = np.dot((true_y - y) , x)
         
         #x = np.append(x, np.ones((x.shape[0], 1)), axis=1) #add 1 for x0
-
+        gradient = np.dot((true_y - y) , x)
         gradient_b = np.sum((true_y - y))
-        b = b + self.lr * gradient_b
-        w[-1] = b
-        w [:-1] += self.lr * gradient
+        #w[-1] = b
+        w  += self.lr * gradient
+        b += self.lr * gradient_b
+
         return w, b
 
     def check_accuracy(self,y, y_t):
