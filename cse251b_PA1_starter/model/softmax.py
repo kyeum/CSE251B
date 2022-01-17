@@ -15,7 +15,6 @@ class SoftmaxRegression():
         self.lr = lr # learning rate
         self.n_class = n_class # number of classes
         self.W = np.zeros((num_features + 1 , n_class)) # weight layer
-        # self.b = np.zeros((1, n_class)) # bias layer
 
     def softmax(self, X):
         '''
@@ -23,7 +22,7 @@ class SoftmaxRegression():
 
         Input: X (n elements x k classes)
         '''
-        eX = np.exp(X) # e^X
+        eX = np.exp(X - np.max(X, axis=1)[:, np.newaxis]) # e^X
         # [:, np.newaxis] is necessary for broadcasting to work properly
         partition = np.sum(eX, axis=1)[:, np.newaxis] # sum of each row
         return eX / partition
@@ -33,17 +32,8 @@ class SoftmaxRegression():
         Model Network for Softmax Regression
         '''
         logits = np.dot(X, self.W)
-        # logits = np.dot(X, self.W) + self.b
         return self.softmax(logits)
 
-    # def model_w(self, X, W, b):
-    #     '''
-    #     Model Network for Softmax Regression w/ given weights and bias
-    #     '''
-    #     logits = np.dot(X, W) + b
-    #     return self.softmax(logits)
-
-    
     def model_w(self, X, W):
         '''
         Model Network for Softmax Regression w/ given weights and bias
@@ -81,7 +71,6 @@ class SoftmaxRegression():
 
         self.W[:-1] -= self.lr * grad_w[:-1]
         self.W[-1] -= self.lr * grad_b
-        # self.b -= self.lr * grad_b
 
     def accuracy(self, y_true, y_hat):
         '''
