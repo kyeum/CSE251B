@@ -14,8 +14,8 @@ class SoftmaxRegression():
         '''
         self.lr = lr # learning rate
         self.n_class = n_class # number of classes
-        self.W = np.zeros((num_features, n_class)) # weight layer
-        self.b = np.zeros((1, n_class)) # bias layer
+        self.W = np.zeros((num_features + 1 , n_class)) # weight layer
+        # self.b = np.zeros((1, n_class)) # bias layer
 
     def softmax(self, X):
         '''
@@ -32,14 +32,23 @@ class SoftmaxRegression():
         '''
         Model Network for Softmax Regression
         '''
-        logits = np.dot(X, self.W) + self.b
+        logits = np.dot(X, self.W)
+        # logits = np.dot(X, self.W) + self.b
         return self.softmax(logits)
 
-    def model_w(self, X, W, b):
+    # def model_w(self, X, W, b):
+    #     '''
+    #     Model Network for Softmax Regression w/ given weights and bias
+    #     '''
+    #     logits = np.dot(X, W) + b
+    #     return self.softmax(logits)
+
+    
+    def model_w(self, X, W):
         '''
         Model Network for Softmax Regression w/ given weights and bias
         '''
-        logits = np.dot(X, W) + b
+        logits = np.dot(X, W)
         return self.softmax(logits)
 
     def cross_entropy(self, y_true, y_hat):
@@ -70,8 +79,9 @@ class SoftmaxRegression():
         grad_w = np.dot(X.T, (y_hat - y_true)) 
         grad_b = np.sum(y_hat - y_true) 
 
-        self.W -= self.lr * grad_w
-        self.b -= self.lr * grad_b
+        self.W[:-1] -= self.lr * grad_w[:-1]
+        self.W[-1] -= self.lr * grad_b
+        # self.b -= self.lr * grad_b
 
     def accuracy(self, y_true, y_hat):
         '''

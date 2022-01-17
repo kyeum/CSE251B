@@ -177,7 +177,11 @@ def shuffle(dataset):
     return (X, y)
 
 def append_bias(X):
-    pass
+    # append bias term to X
+    # add 1 at end of each row
+    print(X.shape)
+    X = np.concatenate([X, np.ones((len(X), 1))], axis=1)
+    return X
 
 def generate_minibatches(dataset, batch_size=64):
     Data, labels = dataset
