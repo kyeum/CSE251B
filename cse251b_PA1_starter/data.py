@@ -56,7 +56,7 @@ def balance_data(dataset):
 
 
 
-    
+
 def z_score_normalize(X, u = None, sd = None):
     """
     Performs z-score normalization on X. 

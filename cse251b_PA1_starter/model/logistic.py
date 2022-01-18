@@ -16,6 +16,7 @@ class LogisticRegression():
         #learning rate
         self.lr = lr
         self.b = np.zeros((1, components)) 
+        self.m = 0# shape
 
     def logistic_model(self, w, x,b):
         ''' 
@@ -25,27 +26,25 @@ class LogisticRegression():
         Returns
         y: dimention of (M, 1)
         '''
-        #x = np.append(x, np.ones((x.shape[0], 1)), axis=1) #add 1 for x0
-        #w[-1] = b
-        #x = np.dot(x,w.T) 
+        self.m = x.shape[0]
+        x = np.append(x, np.ones((x.shape[0], 1)), axis=1) #add 1 for x0
+        w[-1] = b
+        x = np.dot(x,w.T) 
 
-        x = np.dot(x, w.T) + b
-
-        res = 1 / (1 + np.exp(-x)) # actvation fnc
-        return res
+       # actvation fnc
+        return 1/(1 + np.exp(-x))
 
 
     def loss_binary(self, y, true_y) :
         '''
-        cross-entropy cost function
-        y: (M, 1)
+        Compute binary cross entropy.
 
-        true_y: true result (M, 1)
+        L(x) = t*ln(y) + (1-t)*ln(1-y)
 
-        Returns
-        loss: (M,1)
+        Parameters
+        ----------
         '''
-        loss = -(np.sum(true_y * np.log(y) + (1 - true_y) * np.log(1 - y)))/np.size(y)
+        loss = -(np.sum(true_y * np.log(y) + (1 - true_y) * np.log(1 - y)))
         return loss
 
 
@@ -64,11 +63,14 @@ class LogisticRegression():
 
         
         #x = np.append(x, np.ones((x.shape[0], 1)), axis=1) #add 1 for x0
-        gradient = np.dot((true_y - y) , x)
-        gradient_b = np.sum((true_y - y))
+        gradient = np.dot((y-true_y) , x)
+        #*(1/self.m) 
+        gradient_b = np.sum((y-true_y))
+        #*(1/self.m) 
         #w[-1] = b
-        w  += self.lr * gradient
-        b += self.lr * gradient_b
+
+        w[:-1]  -= self.lr * gradient
+        b -= self.lr * gradient_b
 
         return w, b
 
