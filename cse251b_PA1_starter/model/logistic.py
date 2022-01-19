@@ -18,6 +18,10 @@ class LogisticRegression():
         self.b = np.zeros((1, components)) 
         self.m = 0# shape
 
+    def log_lim(self,x):
+        s = 1e-12
+        return np.log(np.maximum(x, s))
+        
     def logistic_model(self, w, x,b):
         ''' 
         x :  M x (d + 1)
@@ -26,7 +30,6 @@ class LogisticRegression():
         Returns
         y: dimention of (M, 1)
         '''
-        self.m = x.shape[0]
         x = np.append(x, np.ones((x.shape[0], 1)), axis=1) #add 1 for x0
         w[-1] = b
         x = np.dot(x,w.T) 
@@ -44,7 +47,7 @@ class LogisticRegression():
         Parameters
         ----------
         '''
-        loss = -(np.sum(true_y * np.log(y) + (1 - true_y) * np.log(1 - y)))
+        loss = -(np.sum(true_y * self.log_lim(y) + (1 - true_y) * self.log_lim(1 - y)))
         return loss
 
 
@@ -62,14 +65,10 @@ class LogisticRegression():
         '''
 
         
-        #x = np.append(x, np.ones((x.shape[0], 1)), axis=1) #add 1 for x0
+        x = np.append(x, np.ones((x.shape[0], 1)), axis=1) #add 1 for x0
         gradient = np.dot((y-true_y) , x)
-        #*(1/self.m) 
         gradient_b = np.sum((y-true_y))
-        #*(1/self.m) 
-        #w[-1] = b
-
-        w[:-1]  -= self.lr * gradient
+        w[:-1]  -= self.lr * gradient[:-1]
         b -= self.lr * gradient_b
 
         return w, b

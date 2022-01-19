@@ -32,11 +32,14 @@ parser.add_argument('--k-folds', type = int, default = 5,
 hyperparameters = parser.parse_args()
 main(hyperparameters)
     
-def PCA_sanitycheck(k = 10, n_components = 40):
+def PCA_sanitycheck(k = 10, n_components = 50):
     # Keep 3 different component numbers. 40, 100, 150
     # 1. Init
     aligned = True
     load_data = traffic_sign(True)
+    X,Y = select_binarydata(load_data, 7 , 8)
+    load_data = X,Y
+
     # 2. Get train, valid and test set - only for first fold for training
     train_data, train_label, valid_data, valid_label, test_data, test_label = generate_no_fold_set(load_data)
     # 3. Apply the PCA - should only perform on the training set
@@ -46,12 +49,15 @@ def PCA_sanitycheck(k = 10, n_components = 40):
 
     # 4. The resulting projections and report the result
     print('0. Traget set >> mean :', 0, 'std:',1/np.sqrt(projected.shape[0]) )
-    print('1. Training set >> mean : ', np.mean(projected), 'std : ', np.std(projected))
+    print('1. Training set >> mean : ', np.mean(projected), 'std : ', np.std(projected[0]))
     # Project the valid and test set
     valid_data = prob.transform(valid_data)
-    print('2. Validation set >> mean : ', np.mean(valid_data), 'std : ',np.std(valid_data))
+    print('2. Validation set >> mean : ', np.mean(valid_data), 'std : ',np.std(valid_data[0]))
     test_data = prob.transform(test_data)
     print('3. Test set >> mean : ', np.mean(test_data), 'std : ',np.std(test_data))
+    
+    print('sanity1 : ', np.shape(projected[0]))
+
     prob.plot_PC()
 
 PCA_sanitycheck()
