@@ -51,10 +51,7 @@ class PCA:
         eigen_values = eigen_values[idx]
         eigen_vectors = eigen_vectors[:,idx]
          # u_i = A * v_i
-        #u_, si, vh = np.linalg.svd(msd, full_matrices=False)
-        #self.vh = vh[:self.num_components].T
-        #self.si = si[:self.num_components]
-        #eigen_vectors = np.matmul(msd, vh)
+
         eigen_vectors = (np.matmul(msd.T, eigen_vectors)).T  # M x d
         # -3) projection
         #self.normalized_eig_vecs = eigen_vectors / np.linalg.norm(eigen_vectors, 2, axis=0)
@@ -112,8 +109,8 @@ class PCA:
         axs[1, 1].imshow(self.principal_eigen_vectors.T[3].real.reshape((32, 32)))
         plt.show()       
 
-# original PCA with A AT(turk)
-    def PCA_Emmet(self, X) :
+# original PCA with (turk and perk)
+    def PCA_turkandperk(self, X) :
         #1. subtract the mean image from every image.
         self.mean_img = np.average(X, axis=0)
         msd = X - self.mean_img  # A = M x d ( M : number of Image, d : dimension of the Image(number of pixel)) = 2785 x  1024
@@ -150,7 +147,7 @@ class PCA:
         
         return self.principal_sqrt_eigen_values
 
-    def PCA_Generate(self,X) :
+    def PCA_generate(self,X) :
         
         """
 
@@ -160,3 +157,17 @@ class PCA:
         projected = np.matmul(X, self.principal_eigen_vectors) / self.principal_sqrt_eigen_values
         
         return projected
+
+
+
+    def PCA_svd_fit(self, X) :
+        #1. subtract the mean image from every image.
+        data = X.copy()
+        data = data - np.average(data, axis=0)
+        
+        u_, si, vh = np.linalg.svd(data, full_matrices=False)
+        self.vh = vh[:self.num_components].T
+        self.si = si[:self.num_components]
+        eigen_vectors = np.matmul(msd, vh)
+        return self.projected
+

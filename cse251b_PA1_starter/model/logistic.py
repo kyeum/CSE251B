@@ -32,6 +32,9 @@ class LogisticRegression():
         '''
         x = np.append(x, np.ones((x.shape[0], 1)), axis=1) #add 1 for x0
         w[-1] = b
+        threshold = 5e2
+        x[x>threshold] = threshold
+        x[x<-threshold]=-threshold
         x = np.dot(x,w.T) 
 
        # actvation fnc
