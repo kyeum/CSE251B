@@ -67,7 +67,7 @@ class LogisticRegression():
         
         x = np.append(x, np.ones((x.shape[0], 1)), axis=1) #add 1 for x0
         gradient = np.dot((y-true_y) , x)
-        gradient_b = np.sum((y-true_y))/len(y)
+        gradient_b = np.mean((y-true_y))
         w[:-1]  -= self.lr * gradient[:-1]
         b -= self.lr * gradient_b
 
