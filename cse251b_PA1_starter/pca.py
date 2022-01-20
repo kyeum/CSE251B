@@ -99,6 +99,7 @@ class PCA:
         fig, axs = plt.subplots(2, 2)
         fig.set_size_inches(8, 8)
         fig.set_dpi(100)
+        fig.suptitle("Unaligned")
         axs[0, 0].set_title('PC 1')
         axs[0, 0].imshow(self.principal_eigen_vectors.T[0].real.reshape((32, 32)))
         axs[0, 1].set_title('PC 2')
@@ -157,17 +158,3 @@ class PCA:
         projected = np.matmul(X, self.principal_eigen_vectors) / self.principal_sqrt_eigen_values
         
         return projected
-
-
-
-    def PCA_svd_fit(self, X) :
-        #1. subtract the mean image from every image.
-        data = X.copy()
-        data = data - np.average(data, axis=0)
-        
-        u_, si, vh = np.linalg.svd(data, full_matrices=False)
-        self.vh = vh[:self.num_components].T
-        self.si = si[:self.num_components]
-        eigen_vectors = np.matmul(msd, vh)
-        return self.projected
-

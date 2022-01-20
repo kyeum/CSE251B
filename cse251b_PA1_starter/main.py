@@ -32,11 +32,11 @@ parser.add_argument('--k-folds', type = int, default = 5,
 hyperparameters = parser.parse_args()
 main(hyperparameters)
     
-def PCA_sanitycheck(k = 10, n_components = 50):
+def PCA_sanitycheck(k = 10, n_components = 100):
     # Keep 3 different component numbers. 40, 100, 150
     # 1. Init
     aligned = True
-    load_data = traffic_sign(True)
+    load_data = traffic_sign(False)
     X,Y = select_binarydata(load_data, 7 , 8)
     load_data = X,Y
 

@@ -81,6 +81,6 @@ class LogisticRegression():
         accuracy for logistic regression
         '''
         y_checkprob = np.zeros(y.shape)
-        y_checkprob[y > 0.5] = 1
-        correct = np.sum(y_checkprob == y_t)
-        return correct / y_t.shape[0]
+        y_checkprob[y >= 0.5] = 1
+        correct = np.mean(y_checkprob == y_t)
+        return correct
