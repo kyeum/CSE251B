@@ -99,7 +99,6 @@ class PCA:
         fig, axs = plt.subplots(2, 2)
         fig.set_size_inches(8, 8)
         fig.set_dpi(100)
-        fig.suptitle("Unaligned")
         axs[0, 0].set_title('PC 1')
         axs[0, 0].imshow(self.principal_eigen_vectors.T[0].real.reshape((32, 32)))
         axs[0, 1].set_title('PC 2')
@@ -116,7 +115,7 @@ class PCA:
         self.mean_img = np.average(X, axis=0)
         msd = X - self.mean_img  # A = M x d ( M : number of Image, d : dimension of the Image(number of pixel)) = 2785 x  1024
         #2. construct co-variance matrix. #outer product of the two column vector d -> covar = A * A.T
-        cov_matrix = np.dot(msd, msd.T) # 2785 x 2785 = M x M ( M x d * d x M)
+        cov_matrix = np.dot(msd, msd.T)# 2785 x 2785 = M x M ( M x d * d x M)
         #3. Find eigenvalue, eigen vector
         eigen_values, eigen_vectors = np.linalg.eigh(cov_matrix)
         #4. Sort the eigen vectors with the largest eigenvalue -> first principal component
