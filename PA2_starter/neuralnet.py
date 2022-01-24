@@ -15,6 +15,7 @@ import numpy as np
 import pickle
 
 
+
 def load_config(path):
     """
     Load the configuration from config.yaml.
@@ -24,16 +25,52 @@ def load_config(path):
 
 def normalize_data(inp):
     """
-    TODO: Normalize your inputs here to have 0 mean and unit variance.
+    TODO: Normalize your inputs here to have 0 mean and unit variance by z scoring.
+
+    f(x) = (x - μ) / σ
+        where 
+            μ = mean of x
+            σ = standard deviation of x
+
+    Parameters
+    ----------
+    inp : np.array
+        The data to z-score normalize
+
+    Returns
+    -------
+        Tuple:
+            Transformed dataset with mean 0 and stdev 1
+            Computed statistics (mean and stdev) for the dataset to undo z-scoring.
     """
-    return inp
+    mu = np.mean(inp, axis=0) # calculate mean for each feature col
+    sigma = np.std(inp, axis=0) # calculate stddev for each feature col
+    X_norm = (inp - mu) / sigma
+
+    return X_norm
 
 
 def one_hot_encoding(labels, num_classes=10):
     """
     TODO: Encode labels using one hot encoding and return them.
+
+    Performs one-hot encoding on y.
+
+    Ideas:
+        NumPy's `eye` function
+
+    Parameters
+    ----------
+    y : np.array
+        1d array (length n) of targets (k)
+
+    Returns
+    -------
+        2d array (shape n*k) with each row corresponding to a one-hot encoded version of the original value.
     """
-    return labels
+    k = np.max(num_classes) + 1
+    onehot_encoded = np.eye(k)[labels]
+    return onehot_encoded
 
 
 def load_data(path, mode='train'):
@@ -74,8 +111,33 @@ def softmax(x):
     """
     TODO: Implement the softmax function here.
     Remember to take care of the overflow condition.
+
+    Softmax activation function
+
+    Input: X (n elements x k classes)
     """
-    raise NotImplementedError("Softmax not implemented")
+    eX = np.exp(x - np.max(x, axis=1)[:, np.newaxis]) # e^X
+    # [:, np.newaxis] is necessary for broadcasting to work properly
+    partition = np.sum(eX, axis=1)[:, np.newaxis] # sum of each row
+    return eX / partition
+
+def plot_PC(self):
+    '''
+    Plot top 4 principal components
+    the eigenvector with the largest eigenvalue is the first principal component,
+    '''
+    fig, axs = plt.subplots(2, 2)
+    fig.set_size_inches(8, 8)
+    fig.set_dpi(100)
+    axs[0, 0].set_title('PC 1')
+    axs[0, 0].imshow(self.principal_eigen_vectors.T[0].real.reshape((32, 32)))
+    axs[0, 1].set_title('PC 2')
+    axs[0, 1].imshow(self.principal_eigen_vectors.T[1].real.reshape((32, 32)))
+    axs[1, 0].set_title('PC: 3')
+    axs[1, 0].imshow(self.principal_eigen_vectors.T[2].real.reshape((32, 32)))
+    axs[1, 1].set_title('PC: 4')
+    axs[1, 1].imshow(self.principal_eigen_vectors.T[3].real.reshape((32, 32)))
+    plt.show()
 
 
 class Activation():
@@ -113,6 +175,11 @@ class Activation():
         Compute the forward pass.
         """
         if self.activation_type == "sigmoid":
+            '''
+            f(x) = 1 / (1 + e ^ (-x))
+            '''
+
+
             return self.sigmoid(a)
 
         elif self.activation_type == "tanh":
@@ -321,9 +388,9 @@ if __name__ == "__main__":
     # x_val, y_val = ...
 
     # TODO: train the model
-    train(model, x_train, y_train, x_valid, y_valid, config)
+    #train(model, x_train, y_train, x_valid, y_valid, config)
 
-    test_acc = test(model, x_test, y_test)
+    #test_acc = test(model, x_test, y_test)
 
     # TODO: Plots
     # plt.plot(...)
