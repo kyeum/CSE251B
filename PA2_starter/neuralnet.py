@@ -47,7 +47,7 @@ def normalize_data(inp):
     sigma = np.std(inp, axis=0) # calculate stddev for each feature col
     X_norm = (inp - mu) / sigma
 
-    return X_norm
+    return X_norm, (mu, sigma)
 
 
 def one_hot_encoding(labels, num_classes=10):
@@ -209,50 +209,58 @@ class Activation():
     def sigmoid(self, x):
         """
         TODO: Implement the sigmoid activation here.
+        sigmoid(z) = 1 / (1 + e^{-z})
         """
-        raise NotImplementedError("Sigmoid not implemented")
+        return 1 / (1 + np.exp(-x))
 
     def tanh(self, x):
         """
         TODO: Implement tanh here.
+        tanh(z) = (e^z - e^{-z})/(e^z + e^{-z})
         """
-        raise NotImplementedError("Tanh not implemented")
+        return (np.exp(x) - np.exp(-x)) / (np.exp(x) + np.exp(-x))
 
     def ReLU(self, x):
         """
         TODO: Implement ReLU here.
+        ReLU(z) = max(0, z)
         """
-        raise NotImplementedError("ReLu not implemented")
+        return np.maximum(0, x)
 
     def leakyReLU(self, x):
         """
         TODO: Implement leaky ReLU here.
+        leakyReLU(z) = max(0.1*z, z)
         """
-        raise NotImplementedError("leakyReLu not implemented")
+        return np.maximum(0.1 * x, x)
 
     def grad_sigmoid(self):
         """
         TODO: Compute the gradient for sigmoid here.
+        dsigmoid(z) = sigmoid(z) * (1 - sigmoid(z))
         """
-        raise NotImplementedError("Sigmoid gradient not implemented")
+        return self.sigmoid(self.x) * (1 - self.sigmoid(self.x))
 
     def grad_tanh(self):
         """
         TODO: Compute the gradient for tanh here.
+        dtanh(z) = 1 - tanh(z)^2
         """
-        raise NotImplementedError("tanh gradient not implemented")
+        return 1 - np.tanh(self.x) ** 2
 
     def grad_ReLU(self):
         """
         TODO: Compute the gradient for ReLU here.
+        dReLU(z) = 1 if z > 0 else 0
         """
-        raise NotImplementedError("ReLU gradient not implemented")
+        return np.where(self.x > 0, 1, 0)
 
     def grad_leakyReLU(self):
         """
         TODO: Compute the gradient for leaky ReLU here.
+        dleakyReLU(z) = 1 if z > 0 else 0.1
         """
-        raise NotImplementedError("leakyReLU gradient not implemented")
+        return np.where(self.x > 0, 1, 0.1)
 
 
 class Layer():
