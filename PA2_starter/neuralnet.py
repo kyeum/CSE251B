@@ -47,14 +47,24 @@ def normalize_data(inp):
     sigma = np.std(inp, axis=0) # calculate stddev for each feature col
     X_norm = (inp - mu) / sigma
 
-    return X_norm
+    return X_norm, (mu, sigma)
+
+def normalize_data_given(X, stats):
+    """
+    Z-score normalize a dataset given the mean and stddev of the training set.
+    """
+    mean, stddev = stats
+    X = (X - mean) / stddev
+    return X
 
 
-def one_hot_encoding(labels, num_classes=10):
+def one_hot_encoding(labels):
     """
     TODO: Encode labels using one hot encoding and return them.
 
     Performs one-hot encoding on y.
+
+    Assumes 0-indexed classes.
 
     Ideas:
         NumPy's `eye` function
@@ -69,12 +79,12 @@ def one_hot_encoding(labels, num_classes=10):
         2d array (shape n*k) with each row corresponding to a one-hot encoded version of the original value.
     """
     
-    k = np.max(num_classes) + 1
+    k = np.max(labels) + 1
     onehot_encoded = np.eye(k)[labels]
     return onehot_encoded
     
 
-def load_data(path, mode='train'):
+def load_data(path, stats=None, mode='train'):
     """
     Load CIFAR-10 data.
     """
@@ -94,18 +104,20 @@ def load_data(path, mode='train'):
             label = images_dict[b'labels'] # 10000
             labels.extend(label)
             images.extend(data)
-        normalized_images = normalize_data(images)
-        one_hot_labels    = one_hot_encoding(labels, num_classes=10) #(n,10)
-        return np.array(normalized_images), np.array(one_hot_labels)
+        normalized_images, stats = normalize_data(images)
+        one_hot_labels    = one_hot_encoding(labels) #(n,10)
+        return np.array(normalized_images), np.array(one_hot_labels), stats
     elif mode == "test":
         test_images_dict = unpickle(os.path.join(cifar_path, f"test_batch"))
         test_data = test_images_dict[b'data']
         test_labels = test_images_dict[b'labels']
-        normalized_images = normalize_data(test_data)
-        one_hot_labels    = one_hot_encoding(test_labels, num_classes=10) #(n,10)
+        normalized_images = normalize_data_given(test_data, stats)
+        one_hot_labels    = one_hot_encoding(test_labels) #(n,10)
         return np.array(normalized_images), np.array(one_hot_labels)
     else:
         raise NotImplementedError(f"Provide a valid mode for load data (train/test)")
+
+
 
 
 def softmax(x):
