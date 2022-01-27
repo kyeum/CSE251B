@@ -83,6 +83,9 @@ def one_hot_encoding(labels):
     onehot_encoded = np.eye(k)[labels]
     return onehot_encoded
     
+def onehot_decode(y):
+    indices = np.argmax(y)
+    return indices
 
 def load_data(path, stats=None, mode='train'):
     """
