@@ -390,7 +390,8 @@ class Neuralnetwork():
         '''
         delta = self.targets - self.y
         for layer in self.layers[::-1]:
-            delta = layer.backward(delta)
+            if isinstance(layer, Layer):
+                delta = layer.backward(delta) #update delta
 
         return delta
 
@@ -441,17 +442,7 @@ if __name__ == "__main__":
     xt = []
     yt = []
 
-    parse = 0
-    for k in range(5):
-        xt.extend(x_train[parse :parse+10])
-        yt.extend(y_train[parse :parse+10])
-        parse += 10000
-            
-    xt = np.array(xt)
-    yt = np.array(yt)
 
-    model.forward(xt,yt)
-    model.backward()
 
 
     # TODO: Create splits for validation data here.
