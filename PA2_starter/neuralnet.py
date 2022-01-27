@@ -378,7 +378,7 @@ class Neuralnetwork():
         '''
         TODO: compute the categorical cross-entropy loss and return it.
         '''
-        epsilon = 1e-5
+        epsilon = 1e-10
         y_true = np.argmax(targets, axis=1)# decode
         ce = np.log(logits[range(len(logits)), y_true] + epsilon)
         return -np.sum(ce)       
