@@ -68,10 +68,11 @@ def one_hot_encoding(labels, num_classes=10):
     -------
         2d array (shape n*k) with each row corresponding to a one-hot encoded version of the original value.
     """
+    
     k = np.max(num_classes) + 1
     onehot_encoded = np.eye(k)[labels]
     return onehot_encoded
-
+    
 
 def load_data(path, mode='train'):
     """
@@ -116,10 +117,12 @@ def softmax(x):
 
     Input: X (n elements x k classes)
     """
+    
     eX = np.exp(x - np.max(x, axis=1)[:, np.newaxis]) # e^X
     # [:, np.newaxis] is necessary for broadcasting to work properly
     partition = np.sum(eX, axis=1)[:, np.newaxis] # sum of each row
     return eX / partition
+    
 
 def plot_PC(self):
     '''
@@ -279,8 +282,7 @@ class Layer():
         Define the architecture and create placeholder.
         """
         np.random.seed(42)
-        self.w = np.random.randn(in_units, out_units)    # Declare the Weight matrix            # >>EY : add randomize 
-        print("$$$$$$",np.shape(self.w))
+        self.w = np.random.randn(in_units, out_units)    #input layer size  output layer size     # >>EY : add randomize 
         self.b = np.zeros((1, out_units)) # Create a placeholder for Bias        # >>EY : add randomize 
 
         self.x = None    # Save the input to forward in this
@@ -314,8 +316,8 @@ class Layer():
         """
         size = self.x.shape[0]
 
-        self.d_x = delta.dot(self.w.T)
-        self.d_w = -self.x.T.dot(delta) / size
+        self.d_x = np.dot(delta,self.w.T)
+        self.d_w = -np.dot(self.x.T,delta) / size
         self.d_b = -delta.sum(axis=0) / size
         return self.d_x
 
@@ -379,7 +381,7 @@ class Neuralnetwork():
         epsilon = 1e-5
         y_true = np.argmax(targets, axis=1)# decode
         ce = np.log(logits[range(len(logits)), y_true] + epsilon)
-        return -np.mean(ce)       
+        return -np.sum(ce)       
 
     def backward(self):
         '''
