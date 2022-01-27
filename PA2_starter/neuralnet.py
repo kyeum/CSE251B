@@ -47,7 +47,7 @@ def normalize_data(inp):
     sigma = np.std(inp, axis=0) # calculate stddev for each feature col
     X_norm = (inp - mu) / sigma
 
-    return X_norm, (mu, sigma)
+    return X_norm
 
 
 def one_hot_encoding(labels, num_classes=10):
@@ -89,8 +89,8 @@ def load_data(path, mode='train'):
         labels = []
         for i in range(1,6):
             images_dict = unpickle(os.path.join(cifar_path, f"data_batch_{i}"))
-            data = images_dict[b'data']
-            label = images_dict[b'labels']
+            data = images_dict[b'data'] # 10000 x 3072
+            label = images_dict[b'labels'] # 10000
             labels.extend(label)
             images.extend(data)
         normalized_images = normalize_data(images)
@@ -175,11 +175,6 @@ class Activation():
         Compute the forward pass.
         """
         if self.activation_type == "sigmoid":
-            '''
-            f(x) = 1 / (1 + e ^ (-x))
-            '''
-
-
             return self.sigmoid(a)
 
         elif self.activation_type == "tanh":
@@ -211,6 +206,8 @@ class Activation():
         TODO: Implement the sigmoid activation here.
         sigmoid(z) = 1 / (1 + e^{-z})
         """
+        self.x = x
+
         return 1 / (1 + np.exp(-x))
 
     def tanh(self, x):
@@ -218,6 +215,8 @@ class Activation():
         TODO: Implement tanh here.
         tanh(z) = (e^z - e^{-z})/(e^z + e^{-z})
         """
+        self.x = x
+
         return (np.exp(x) - np.exp(-x)) / (np.exp(x) + np.exp(-x))
 
     def ReLU(self, x):
@@ -225,6 +224,7 @@ class Activation():
         TODO: Implement ReLU here.
         ReLU(z) = max(0, z)
         """
+        self.x = x
         return np.maximum(0, x)
 
     def leakyReLU(self, x):
@@ -232,6 +232,8 @@ class Activation():
         TODO: Implement leaky ReLU here.
         leakyReLU(z) = max(0.1*z, z)
         """
+        self.x = x
+
         return np.maximum(0.1 * x, x)
 
     def grad_sigmoid(self):
@@ -272,14 +274,15 @@ class Layer():
         >>> output = fully_connected_layer(input)
         >>> gradient = fully_connected_layer.backward(delta=1.0)
     """
-
     def __init__(self, in_units, out_units):
         """
         Define the architecture and create placeholder.
         """
         np.random.seed(42)
-        self.w = None    # Declare the Weight matrix
-        self.b = None    # Create a placeholder for Bias
+        self.w = np.random.randn(in_units, out_units)    # Declare the Weight matrix            # >>EY : add randomize 
+        print("$$$$$$",np.shape(self.w))
+        self.b = np.zeros((1, out_units)) # Create a placeholder for Bias        # >>EY : add randomize 
+
         self.x = None    # Save the input to forward in this
         self.a = None    # Save the output of forward pass in this (without activation)
 
@@ -299,7 +302,9 @@ class Layer():
         DO NOT apply activation here.
         Return self.a
         """
-        raise NotImplementedError("Layer forward pass not implemented.")
+        self.x = x
+        self.a = np.dot(self.x,self.w) + self.b
+        return self.a
 
     def backward(self, delta):
         """
@@ -307,7 +312,12 @@ class Layer():
         computes gradient for its weights and the delta to pass to its previous layers.
         Return self.dx
         """
-        raise NotImplementedError("Backprop for Layer not implemented.")
+        size = self.x.shape[0]
+
+        self.d_x = delta.dot(self.w.T)
+        self.d_w = -self.x.T.dot(delta) / size
+        self.d_b = -delta.sum(axis=0) / size
+        return self.d_x
 
 
 class Neuralnetwork():
@@ -328,6 +338,7 @@ class Neuralnetwork():
         self.x = None        # Save the input to forward in this
         self.y = None        # Save the output vector of model in this
         self.targets = None  # Save the targets in forward in this variable
+        self.l2_penalty = None
 
         # Add layers specified by layer_specs.
         for i in range(len(config['layer_specs']) - 1):
@@ -346,20 +357,40 @@ class Neuralnetwork():
         TODO: Compute forward pass through all the layers in the network and return it.
         If targets are provided, return loss as well.
         """
-        raise NotImplementedError("Forward not implemented for NeuralNetwork")
+        self.x = x
+        self.targets = targets
+
+        out = self.x
+        for layer in self.layers:
+            out = layer.forward(out)
+
+        # Softmax
+        self.y = softmax(out)
+
+        # Compute cross entropy loss
+        loss = self.loss(self.y, targets)
+
+        return loss
 
     def loss(self, logits, targets):
         '''
         TODO: compute the categorical cross-entropy loss and return it.
         '''
-        raise NotImplementedError("Loss not implemented for NeuralNetwork")
+        epsilon = 1e-5
+        y_true = np.argmax(targets, axis=1)# decode
+        ce = np.log(logits[range(len(logits)), y_true] + epsilon)
+        return -np.mean(ce)       
 
     def backward(self):
         '''
         TODO: Implement backpropagation here.
         Call backward methods of individual layers.
         '''
-        raise NotImplementedError("Backprop not implemented for NeuralNetwork")
+        delta = self.targets - self.y
+        for layer in self.layers[::-1]:
+            delta = layer.backward(delta)
+
+        return delta
 
 
 def train(model, x_train, y_train, x_valid, y_valid, config):
@@ -378,20 +409,49 @@ def test(model, X_test, y_test):
     TODO: Calculate and return the accuracy on the test set.
     """
 
+
+
+
     raise NotImplementedError("Test method not implemented")
 
 
 if __name__ == "__main__":
     # Load the configuration.
-    config = load_config("./")
+    config = load_config("./data")
 
+    config_prob_b = {}
+    config_prob_b['layer_specs'] = [3072, 50, 50, 11]
+    config_prob_b['activation'] = 'ReLU'
+    config_prob_b['learning_rate'] = 0.15 
+    config_prob_b['batch_size'] = 128 
+    config_prob_b['epochs'] = 100  
+    config_prob_b['early_stop'] = True 
+    config_prob_b['early_stop_epoch'] = 5  
+    config_prob_b['L2_penalty'] = 0  
+    config_prob_b['momentum'] = True  
+    config_prob_b['momentum_gamma'] = 0.9  
     # Create the model
-    model  = Neuralnetwork(config)
+    model  = Neuralnetwork(config_prob_b)
 
     # Load the data
     x_train, y_train = load_data(path="./data", mode="train")
-    x_test,  y_test  = load_data(path="./data", mode="test")
-    
+    #x_test,  y_test  = load_data(path="./data", mode="test")
+    xt = []
+    yt = []
+
+    parse = 0
+    for k in range(5):
+        xt.extend(x_train[parse :parse+10])
+        yt.extend(y_train[parse :parse+10])
+        parse += 10000
+            
+    xt = np.array(xt)
+    yt = np.array(yt)
+
+    model.forward(xt,yt)
+    model.backward()
+
+
     # TODO: Create splits for validation data here.
     # x_val, y_val = ...
 
