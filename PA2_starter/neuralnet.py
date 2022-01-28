@@ -304,6 +304,7 @@ class Layer():
         """
         np.random.seed(42)
         self.w = np.random.randn(in_units, out_units)    #input layer size  output layer size     # >>EY : add randomize 
+        # self.w = np.zeros((in_units, out_units))    #input layer size  output layer size     # >>EY : add randomize 
         self.b = np.zeros((1, out_units)) # Create a placeholder for Bias        # >>EY : add randomize 
 
         self.x = None    # Save the input to forward in this
@@ -325,6 +326,7 @@ class Layer():
         DO NOT apply activation here.
         Return self.a
         """
+        print("IN Layer forward")
         self.x = x.reshape((-1, self.w.shape[0]))
         self.a = np.dot(self.x,self.w) + self.b
         return self.a
@@ -342,6 +344,51 @@ class Layer():
         self.d_b = -delta.sum(axis=0) / size
         return self.d_x
 
+class SoftmaxLayer(Layer):
+    def __init__(self):
+        pass
+
+    def forward(self, x, targets=None):
+        """
+        TODO: Compute the forward pass through the layer here.
+        DO NOT apply activation here.
+        Return self.a
+        """
+        y_hat = self.softmax(x)
+        self.y = y_hat
+
+        if targets is None:
+            return y_hat
+        loss = self.loss(y_hat, targets)
+        return y_hat, loss
+
+    def backward(self, delta):
+        delta = (delta -(delta * self.y).sum(axis=1)[:,None])
+        return self.y * delta
+
+    def loss(self, logits, targets):
+        '''
+        TODO: compute the categorical cross-entropy loss and return it.
+        '''
+        epsilon = 1e-10
+        y_true = np.argmax(targets, axis=1)# decode
+        ce = np.log(logits[range(len(logits)), y_true] + epsilon)
+        return -np.sum(ce)    
+
+    def softmax(self, x):
+        """
+        TODO: Implement the softmax function here.
+        Remember to take care of the overflow condition.
+
+        Softmax activation function
+
+        Input: X (n elements x k classes)
+        """
+        
+        eX = np.exp(x - np.max(x, axis=1)[:, np.newaxis]) # e^X
+        # [:, np.newaxis] is necessary for broadcasting to work properly
+        partition = np.sum(eX, axis=1)[:, np.newaxis] # sum of each row
+        return eX / partition
 
 class Neuralnetwork():
     """
@@ -368,6 +415,7 @@ class Neuralnetwork():
             self.layers.append(Layer(config['layer_specs'][i], config['layer_specs'][i+1]))
             if i < len(config['layer_specs']) - 2:
                 self.layers.append(Activation(config['activation']))
+        self.layers.append(SoftmaxLayer())
 
     def __call__(self, x, targets=None):
         """
@@ -388,7 +436,9 @@ class Neuralnetwork():
             out = layer.forward(out)
 
         # Softmax
-        self.y = softmax(out)
+        # print("OUT:", out)
+        # self.y = softmax(out)
+        self.y = out
 
         if targets is None:
             return self.y
