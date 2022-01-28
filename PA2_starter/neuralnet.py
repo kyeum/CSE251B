@@ -27,6 +27,8 @@ def normalize_data(inp):
     """
     TODO: Normalize your inputs here to have 0 mean and unit variance by z scoring.
 
+    input = batch_size x 32 x 32 x 3
+
     f(x) = (x - μ) / σ
         where 
             μ = mean of x
@@ -43,8 +45,9 @@ def normalize_data(inp):
             Transformed dataset with mean 0 and stdev 1
             Computed statistics (mean and stdev) for the dataset to undo z-scoring.
     """
-    mu = np.mean(inp, axis=0) # calculate mean for each feature col
-    sigma = np.std(inp, axis=0) # calculate stddev for each feature col
+    print("inp:", inp.shape)
+    mu = np.mean(inp, axis=(0,1,2)) # calculate mean for each feature col
+    sigma = np.std(inp, axis=(0,1,2)) # calculate stddev for each feature col
     X_norm = (inp - mu) / sigma
 
     return X_norm, (mu, sigma)
@@ -84,7 +87,7 @@ def one_hot_encoding(labels):
     return onehot_encoded
     
 def onehot_decode(y):
-    indices = np.argmax(y)
+    indices = np.argmax(y, axis=1)
     return indices
 
 def load_data(path, stats=None, mode='train'):
@@ -106,7 +109,9 @@ def load_data(path, stats=None, mode='train'):
             data = images_dict[b'data'] # 10000 x 3072
             label = images_dict[b'labels'] # 10000
             labels.extend(label)
-            images.extend(data)
+            images.extend(data.reshape((-1, 32, 32, 3)))
+        images = np.array(images)
+        print(images.shape)
         normalized_images, stats = normalize_data(images)
         one_hot_labels    = one_hot_encoding(labels) #(n,10)
         return np.array(normalized_images), np.array(one_hot_labels), stats
@@ -114,6 +119,7 @@ def load_data(path, stats=None, mode='train'):
         test_images_dict = unpickle(os.path.join(cifar_path, f"test_batch"))
         test_data = test_images_dict[b'data']
         test_labels = test_images_dict[b'labels']
+        test_data = test_data.reshape(-1, 32, 32, 3)
         normalized_images = normalize_data_given(test_data, stats)
         one_hot_labels    = one_hot_encoding(test_labels) #(n,10)
         return np.array(normalized_images), np.array(one_hot_labels)
@@ -319,7 +325,7 @@ class Layer():
         DO NOT apply activation here.
         Return self.a
         """
-        self.x = x
+        self.x = x.reshape((-1, self.w.shape[0]))
         self.a = np.dot(self.x,self.w) + self.b
         return self.a
 
@@ -384,10 +390,13 @@ class Neuralnetwork():
         # Softmax
         self.y = softmax(out)
 
+        if targets is None:
+            return self.y
+
         # Compute cross entropy loss
         loss = self.loss(self.y, targets)
 
-        return loss
+        return self.y, loss
 
     def loss(self, logits, targets):
         '''
