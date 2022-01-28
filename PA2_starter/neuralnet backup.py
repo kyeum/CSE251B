@@ -13,6 +13,7 @@ import os, gzip
 import yaml
 import numpy as np
 import pickle
+import random
 
 
 
@@ -90,7 +91,7 @@ def onehot_decode(y):
     indices = np.argmax(y, axis=1)
     return indices
 
-def load_data(path, stats=None, mode='train'):
+def load_data(path, stats, mode='train'):
     """
     Load CIFAR-10 data.
     """
@@ -114,6 +115,7 @@ def load_data(path, stats=None, mode='train'):
         print(images.shape)
         normalized_images, stats = normalize_data(images)
         one_hot_labels    = one_hot_encoding(labels) #(n,10)
+        normalized_images = normalized_images.reshape(-1, 3072)
         return np.array(normalized_images), np.array(one_hot_labels), stats
     elif mode == "test":
         test_images_dict = unpickle(os.path.join(cifar_path, f"test_batch"))
@@ -122,6 +124,8 @@ def load_data(path, stats=None, mode='train'):
         test_data = test_data.reshape(-1, 32, 32, 3)
         normalized_images = normalize_data_given(test_data, stats)
         one_hot_labels    = one_hot_encoding(test_labels) #(n,10)
+        
+        normalized_images = normalized_images.reshape(-1, 3072)
         return np.array(normalized_images), np.array(one_hot_labels)
     else:
         raise NotImplementedError(f"Provide a valid mode for load data (train/test)")
@@ -240,8 +244,8 @@ class Activation():
         tanh(z) = (e^z - e^{-z})/(e^z + e^{-z})
         """
         self.x = x
-
-        return (np.exp(x) - np.exp(-x)) / (np.exp(x) + np.exp(-x))
+        #(np.exp(x) - np.exp(-x)) / (np.exp(x) + np.exp(-x))
+        return np.tanh(self.x)
 
     def ReLU(self, x):
         """
@@ -422,7 +426,7 @@ class Neuralnetwork():
         scale_size = targets.shape[0]
         epsilon = 1e-14
         y_true = np.argmax(targets, axis=1)# decode
-        ce = np.log(logits[range(len(logits)), y_true])
+        ce = np.log(logits[range(len(logits)), y_true]+epsilon)
         return -np.sum(ce)/scale_size
 
 
@@ -478,6 +482,29 @@ def generate_minibatches(Data,labels, batch_size=128):
     yield Data[l_idx:], labels[l_idx:]
 
 
+
+def split_data(x, y):
+    """
+    :param x: Input data
+    :param y: Input Label
+    :param percentage: Train Validation Split Preventage
+    :return: x_train, y_train, x_val, y_val
+    """
+    percentage = 0.1
+    num_val = int(np.round(x.shape[0] * percentage))
+    val_l = random.sample(list(range(x.shape[0])), num_val)
+    l = list(range(x.shape[0]))
+    t_l = [idx for idx in l if (idx not in val_l)]
+
+
+    x_train = x[t_l]
+    y_train = y[t_l]
+    x_valid = x[val_l]
+    y_valid = y[val_l]
+
+    return x_train, y_train, x_valid, y_valid
+
+
 def train(model, x_train, y_train, x_valid, y_valid, config):
     """
     Train your model here.
@@ -514,7 +541,15 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
         holdout_accuracy_record.append(holdout_accuracy)
 
         if holdout_accuracy >= max(holdout_accuracy_record):
-            model.Bestweight() # use best weight for test sets
+            model.Bestweight(False)
+
+
+        print(f' epoch: {epoch + 1}, train accuracy: {train_accuracy:.4f}, train_loss_norm:{train_loss:.4f}, '\
+            f'valid_acc: {holdout_accuracy:.4f}, valid_loss_norm: {holdout_loss:.4f}')     
+
+    return train_accuracy_record
+
+        
 
 
 
@@ -534,9 +569,9 @@ if __name__ == "__main__":
     config = load_config("./data")
 
     config_prob_b = {}
-    config_prob_b['layer_specs'] = [3072, 50, 50, 10]
-    config_prob_b['activation'] = 'ReLU'
-    config_prob_b['learning_rate'] = 0.15 
+    config_prob_b['layer_specs'] = [3072, 64, 64, 10]
+    config_prob_b['activation'] = 'tanh'
+    config_prob_b['learning_rate'] = 0.05 
     config_prob_b['batch_size'] = 128 
     config_prob_b['epochs'] = 100  
     config_prob_b['early_stop'] = True 
@@ -548,21 +583,26 @@ if __name__ == "__main__":
     model  = Neuralnetwork(config_prob_b)
 
     # Load the data
-    x_train, y_train = load_data(path="./data", mode="train")
-    #x_test,  y_test  = load_data(path="./data", mode="test")
-    xt = []
-    yt = []
+    x_train, y_train, stats = load_data(path="./data",stats = None, mode="train")
+    x_test, y_test = load_data(path="./data",stats = stats, mode="test")
+
+    print(np.shape(x_train))
+
+
+    # TODO(done): Create splits for validation data here.
+    x_train, y_train, x_valid, y_valid = split_data(x_train,y_train)
 
 
 
+    # TODO(on going): train the model
+    trainacc = train(model, x_train, y_train, x_valid, y_valid, config)
+    print(trainacc)
 
-    # TODO: Create splits for validation data here.
-    # x_val, y_val = ...
 
-    # TODO: train the model
-    #train(model, x_train, y_train, x_valid, y_valid, config)
 
-    #test_acc = test(model, x_test, y_test)
+    # TODO(done): test the model
+    test_acc = test(model, x_test, y_test)
 
-    # TODO: Plots
+
+    # TODO(on going): Plots
     # plt.plot(...)
