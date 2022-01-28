@@ -27,6 +27,8 @@ def normalize_data(inp):
     """
     TODO: Normalize your inputs here to have 0 mean and unit variance by z scoring.
 
+    input = batch_size x 32 x 32 x 3
+
     f(x) = (x - μ) / σ
         where 
             μ = mean of x
@@ -43,18 +45,29 @@ def normalize_data(inp):
             Transformed dataset with mean 0 and stdev 1
             Computed statistics (mean and stdev) for the dataset to undo z-scoring.
     """
-    mu = np.mean(inp, axis=0) # calculate mean for each feature col
-    sigma = np.std(inp, axis=0) # calculate stddev for each feature col
+    print("inp:", inp.shape)
+    mu = np.mean(inp, axis=(0,1,2)) # calculate mean for each feature col
+    sigma = np.std(inp, axis=(0,1,2)) # calculate stddev for each feature col
     X_norm = (inp - mu) / sigma
 
-    return X_norm
+    return X_norm, (mu, sigma)
+
+def normalize_data_given(X, stats):
+    """
+    Z-score normalize a dataset given the mean and stddev of the training set.
+    """
+    mean, stddev = stats
+    X = (X - mean) / stddev
+    return X
 
 
-def one_hot_encoding(labels, num_classes=10):
+def one_hot_encoding(labels):
     """
     TODO: Encode labels using one hot encoding and return them.
 
     Performs one-hot encoding on y.
+
+    Assumes 0-indexed classes.
 
     Ideas:
         NumPy's `eye` function
@@ -69,12 +82,15 @@ def one_hot_encoding(labels, num_classes=10):
         2d array (shape n*k) with each row corresponding to a one-hot encoded version of the original value.
     """
     
-    k = np.max(num_classes) + 1
+    k = np.max(labels) + 1
     onehot_encoded = np.eye(k)[labels]
     return onehot_encoded
     
+def onehot_decode(y):
+    indices = np.argmax(y, axis=1)
+    return indices
 
-def load_data(path, mode='train'):
+def load_data(path, stats=None, mode='train'):
     """
     Load CIFAR-10 data.
     """
@@ -93,19 +109,24 @@ def load_data(path, mode='train'):
             data = images_dict[b'data'] # 10000 x 3072
             label = images_dict[b'labels'] # 10000
             labels.extend(label)
-            images.extend(data)
-        normalized_images = normalize_data(images)
-        one_hot_labels    = one_hot_encoding(labels, num_classes=10) #(n,10)
-        return np.array(normalized_images), np.array(one_hot_labels)
+            images.extend(data.reshape((-1, 32, 32, 3)))
+        images = np.array(images)
+        print(images.shape)
+        normalized_images, stats = normalize_data(images)
+        one_hot_labels    = one_hot_encoding(labels) #(n,10)
+        return np.array(normalized_images), np.array(one_hot_labels), stats
     elif mode == "test":
         test_images_dict = unpickle(os.path.join(cifar_path, f"test_batch"))
         test_data = test_images_dict[b'data']
         test_labels = test_images_dict[b'labels']
-        normalized_images = normalize_data(test_data)
-        one_hot_labels    = one_hot_encoding(test_labels, num_classes=10) #(n,10)
+        test_data = test_data.reshape(-1, 32, 32, 3)
+        normalized_images = normalize_data_given(test_data, stats)
+        one_hot_labels    = one_hot_encoding(test_labels) #(n,10)
         return np.array(normalized_images), np.array(one_hot_labels)
     else:
         raise NotImplementedError(f"Provide a valid mode for load data (train/test)")
+
+
 
 
 def softmax(x):
@@ -281,7 +302,7 @@ class Layer():
         """
         Define the architecture and create placeholder.
         """
-        np.random.seed(42)
+        np.random.seed(41)
         self.w = np.random.randn(in_units, out_units)    #input layer size  output layer size     # >>EY : add randomize 
         self.b = np.zeros((1, out_units)) # Create a placeholder for Bias        # >>EY : add randomize 
 
@@ -304,7 +325,7 @@ class Layer():
         DO NOT apply activation here.
         Return self.a
         """
-        self.x = x
+        self.x = x.reshape((-1, self.w.shape[0]))
         self.a = np.dot(self.x,self.w) + self.b
         return self.a
 
@@ -315,11 +336,26 @@ class Layer():
         Return self.dx
         """
         size = self.x.shape[0]
-
         self.d_x = np.dot(delta,self.w.T)
         self.d_w = -np.dot(self.x.T,delta) / size
         self.d_b = -delta.sum(axis=0) / size
         return self.d_x
+
+    def update_weight_layer(self, lr):
+        """
+        updating layer weight
+        """
+        self.w += lr * self.d_w
+        self.b += lr * self.d_b
+
+    def Best_weight(self,ret = False):
+        if(ret) : 
+            self.w = self.w_best
+            self.b = self.b_best  
+        else :     
+            self.w_best = self.w
+            self.b_best = self.b
+
 
 
 class Neuralnetwork():
@@ -341,6 +377,7 @@ class Neuralnetwork():
         self.y = None        # Save the output vector of model in this
         self.targets = None  # Save the targets in forward in this variable
         self.l2_penalty = None
+        self.lr = config['learning_rate']  # learning rate add
 
         # Add layers specified by layer_specs.
         for i in range(len(config['layer_specs']) - 1):
@@ -369,19 +406,25 @@ class Neuralnetwork():
         # Softmax
         self.y = softmax(out)
 
+        if targets is None:
+            return self.y
+
         # Compute cross entropy loss
         loss = self.loss(self.y, targets)
 
-        return loss
+        return self.y, loss
 
     def loss(self, logits, targets):
         '''
         TODO: compute the categorical cross-entropy loss and return it.
         '''
-        epsilon = 1e-10
+        
+        scale_size = targets.shape[0]
+        epsilon = 1e-14
         y_true = np.argmax(targets, axis=1)# decode
-        ce = np.log(logits[range(len(logits)), y_true] + epsilon)
-        return -np.sum(ce)       
+        ce = np.log(logits[range(len(logits)), y_true])
+        return -np.sum(ce)/scale_size
+
 
     def backward(self):
         '''
@@ -395,52 +438,103 @@ class Neuralnetwork():
 
         return delta
 
+    def Updateweight(self):
+        '''
+        TODO: Implement backpropagation here.
+        Call backward methods of individual layers.
+        '''
+        for layer in self.layers[::-1]:
+            if isinstance(layer, Layer):
+                layer.update_weight_layer(self.lr)
+                
+    def Bestweight(self, load = False):
+        '''
+        TODO: Implement backpropagation here.
+        Call backward methods of individual layers.
+        '''
+        for layer in self.layers[::-1]:
+            if isinstance(layer, Layer):
+                layer.Best_weight(load) #False : save , True : load
 
-def train(model, x_train, y_train, x_valid, y_valid, config):
-    """
-    TODO: Train your model here.
-    Implement batch SGD to train the model.
-    Implement Early Stopping.
-    Use config to set parameters for training like learning rate, momentum, etc.
-    """
+    def accuracy(self, y_true, y_hat):
+        '''
+        Calculate accuracy
 
-    raise NotImplementedError("Train method not implemented")
+        y_true: true labels (onehot)
+        y_hat: predicted labels
+        '''
+        true_labels = onehot_decode(y_true)
+        pred_labels = np.argmax(y_hat, axis=1)
+        return np.sum(true_labels == pred_labels) / y_true.shape[0]    
 
-
-def test(model, X_test, y_test):
-    """
-    TODO: Calculate and return the accuracy on the test set.
-    """
-
-
-
-
-    raise NotImplementedError("Test method not implemented")
-
-def generate_minibatches(dataset, batch_size=128):
-    Data, labels = dataset
+   
+def generate_minibatches(Data,labels, batch_size=128):
+    #need to permutation
     l_idx, r_idx = 0, batch_size
     while r_idx < len(Data):
         yield Data[l_idx:r_idx], labels[l_idx:r_idx]
         l_idx, r_idx = r_idx, r_idx + batch_size
 
     yield Data[l_idx:], labels[l_idx:]
-    
-def generate_split_set(dataset, percentage=0.1): 
 
 
-    yield Data[l_idx:], labels[l_idx:]
+def train(model, x_train, y_train, x_valid, y_valid, config):
+    """
+    Train your model here.
+    Implement batch SGD to train the model.
+    Implement Early Stopping.
+    Use config to set parameters for training like learning rate, momentum, etc.
+    """
+    epochs = config['epochs']
+    batch_size = config['batch_size']
+
+    train_loss_record = []
+    train_accuracy_record = []
+    holdout_loss_record = []
+    holdout_accuracy_record = []
+
+    for epoch in range(epochs):
+        batch_loss = []
+        batch_accuracy = []
+        for x, y in generate_minibatches(x_train, y_train, batch_size):
+            batch_loss.append(model.forward(x, y)[1]) # forward
+            model.backward() # backward
+            model.Updateweight() # update weight for each layer.
+            batch_accuracy.append(model.accuracy(x, y))
+
+        train_loss = np.mean(np.array(batch_loss))
+        train_accuracy = np.mean(np.array(batch_accuracy))
+
+        holdout_loss = model.forward(x_valid, y_valid)[1]
+        holdout_accuracy = model.accuracy(x_valid, y_valid)
+
+        train_loss_record.append(train_loss)
+        train_accuracy_record.append(train_accuracy)
+        holdout_loss_record.append(holdout_loss)
+        holdout_accuracy_record.append(holdout_accuracy)
+
+        if holdout_accuracy >= max(holdout_accuracy_record):
+            model.Bestweight() # use best weight for test sets
 
 
 
-
+def test(model, X_test, y_test):
+    """
+    TODO: Calculate and return the accuracy on the test set.
+    """
+    y_hat = model.forward(X_test)
+    true_labels = onehot_decode(y_test)
+    pred_labels = np.argmax(y_hat, axis=1)
+    return np.sum(true_labels == pred_labels) / true_labels.shape[0]
 
 if __name__ == "__main__":
     # Load the configuration.
+    # This is only for the testing.
+
     config = load_config("./data")
 
     config_prob_b = {}
-    config_prob_b['layer_specs'] = [3072, 50, 50, 11]
+    config_prob_b['layer_specs'] = [3072, 50, 50, 10]
     config_prob_b['activation'] = 'ReLU'
     config_prob_b['learning_rate'] = 0.15 
     config_prob_b['batch_size'] = 128 
@@ -464,11 +558,6 @@ if __name__ == "__main__":
 
     # TODO: Create splits for validation data here.
     # x_val, y_val = ...
-
-
-
-
-
 
     # TODO: train the model
     #train(model, x_train, y_train, x_valid, y_valid, config)
