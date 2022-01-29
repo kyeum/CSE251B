@@ -498,8 +498,6 @@ def generate_minibatches(Data,labels, batch_size=128):
 
     yield Data[l_idx:], labels[l_idx:]
 
-
-
 def split_data(x, y):
     """
     :param x: Input data
@@ -512,7 +510,6 @@ def split_data(x, y):
     val_l = random.sample(list(range(x.shape[0])), num_val)
     l = list(range(x.shape[0]))
     t_l = [idx for idx in l if (idx not in val_l)]
-
 
     x_train = x[t_l]
     y_train = y[t_l]
@@ -532,8 +529,8 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
     epochs = config['epochs']
     batch_size = config['batch_size']
     momentum =    config['momentum']
-    momentum_gamma = ['momentum_gamma']
-    L2_penalty = ['momentum_gamma']
+    momentum_gamma = config['momentum_gamma']
+    L2_penalty = config['momentum_gamma']
 
 
     train_loss_record = []
@@ -570,9 +567,9 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
 
     return train_accuracy_record
 
+
+
         
-
-
 
 def test(model, X_test, y_test):
     """
