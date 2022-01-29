@@ -356,8 +356,8 @@ class Layer():
         updating layer weight
         """
         if (momentum) : 
-            self.w += lr * self.d_w + momentum_gamma * self.pre_d_w # need to check
-            self.b += lr * self.d_b + momentum_gamma * self.pre_d_b    
+            self.w += lr * ((1 - momentum_gamma) * self.d_w + momentum_gamma * self.pre_d_w) # need to check
+            self.b += lr * ((1 - momentum_gamma) * self.d_b + momentum_gamma * self.pre_d_b)    
             
             self.pre_d_w = self.d_w
             self.pre_d_b = self.d_b
