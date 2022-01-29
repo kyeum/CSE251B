@@ -316,6 +316,8 @@ class Layer():
         self.d_x = None  # Save the gradient w.r.t x in this
         self.d_w = None  # Save the gradient w.r.t w in this
         self.d_b = None  # Save the gradient w.r.t b in this
+        self.pre_d_w = 0
+        self.pre_d_b = 0
 
     def __call__(self, x):
         """
@@ -345,12 +347,22 @@ class Layer():
         self.d_b = -delta.sum(axis=0) / size
         return self.d_x
 
-    def update_weight_layer(self, lr):
+    def update_weight_layer(self, lr, momentum, momentum_gamma):
         """
         updating layer weight
         """
-        self.w += lr * self.d_w
-        self.b += lr * self.d_b
+        if(momentum) : 
+            self.w += lr * self.d_w + momentum_gamma * self.pre_d_w # need to check
+            self.b += lr * self.d_b + momentum_gamma * self.pre_d_b    
+            
+            self.pre_d_w = self.d_w
+            self.pre_d_b = self.d_b
+
+
+        else : 
+
+            self.w += lr * self.d_w
+            self.b += lr * self.d_b
 
     def Best_weight(self,ret = False):
         if(ret) : 
@@ -382,6 +394,11 @@ class Neuralnetwork():
         self.targets = None  # Save the targets in forward in this variable
         self.l2_penalty = None
         self.lr = config['learning_rate']  # learning rate add
+        self.momentum = config['momentum']  # momentum
+        self.momentum_gamma = config['momentum_gamma']  # momentum
+        self.L2 = config['L2_penalty']  # momentum
+
+
 
         # Add layers specified by layer_specs.
         for i in range(len(config['layer_specs']) - 1):
@@ -449,7 +466,7 @@ class Neuralnetwork():
         '''
         for layer in self.layers[::-1]:
             if isinstance(layer, Layer):
-                layer.update_weight_layer(self.lr)
+                layer.update_weight_layer(self.lr,self.momentum,self.momentum_gamma)
                 
     def Bestweight(self, load = False):
         '''
@@ -514,6 +531,10 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
     """
     epochs = config['epochs']
     batch_size = config['batch_size']
+    momentum =    config['momentum']
+    momentum_gamma = ['momentum_gamma']
+    L2_penalty = ['momentum_gamma']
+
 
     train_loss_record = []
     train_accuracy_record = []
