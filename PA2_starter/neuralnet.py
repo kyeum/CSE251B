@@ -314,8 +314,8 @@ class Layer():
         self.a = None    # Save the output of forward pass in this (without activation)
 
         self.d_x = None  # Save the gradient w.r.t x in this
-        self.d_w = None  # Save the gradient w.r.t w in this
-        self.d_b = None  # Save the gradient w.r.t b in this
+        self.d_w = np.zeros_like(self.w)  # Save the gradient w.r.t w in this
+        self.d_b = np.zeros_like(self.b)  # Save the gradient w.r.t b in this
         self.pre_d_w = 0
         self.pre_d_b = 0
 
@@ -343,29 +343,30 @@ class Layer():
         """
         size = self.x.shape[0]
         self.d_x = np.dot(delta,self.w.T)
-        self.d_w = -np.dot(self.x.T,delta) / size
-        self.d_b = -delta.sum(axis=0) / size
+        self.d_w -= np.dot(self.x.T,delta) / size
+        self.d_b -= delta.sum(axis=0) / size
         return self.d_x
+
+    def zero_grad(self):
+        self.d_w = np.zeros_like(self.d_w)
+        self.d_b = np.zeros_like(self.d_b)
 
     def update_weight_layer(self, lr, momentum, momentum_gamma):
         """
         updating layer weight
         """
-        if(momentum) : 
+        if (momentum) : 
             self.w += lr * self.d_w + momentum_gamma * self.pre_d_w # need to check
             self.b += lr * self.d_b + momentum_gamma * self.pre_d_b    
             
             self.pre_d_w = self.d_w
             self.pre_d_b = self.d_b
-
-
         else : 
-
             self.w += lr * self.d_w
             self.b += lr * self.d_b
 
-    def Best_weight(self,ret = False):
-        if(ret) : 
+    def best_weight(self, load = False):
+        if (load) : 
             self.w = self.w_best
             self.b = self.b_best  
         else :     
@@ -397,7 +398,6 @@ class Neuralnetwork():
         self.momentum = config['momentum']  # momentum
         self.momentum_gamma = config['momentum_gamma']  # momentum
         self.L2 = config['L2_penalty']  # momentum
-
 
 
         # Add layers specified by layer_specs.
@@ -459,7 +459,12 @@ class Neuralnetwork():
 
         return delta
 
-    def Updateweight(self):
+    def zero_grad(self):
+        for layer in self.layers:
+            if isinstance(layer, Layer):
+                layer.zero_grad()
+
+    def update_weights(self):
         '''
         TODO: Implement backpropagation here.
         Call backward methods of individual layers.
@@ -468,14 +473,14 @@ class Neuralnetwork():
             if isinstance(layer, Layer):
                 layer.update_weight_layer(self.lr,self.momentum,self.momentum_gamma)
                 
-    def Bestweight(self, load = False):
+    def best_weight(self, load = False):
         '''
         TODO: Implement backpropagation here.
         Call backward methods of individual layers.
         '''
         for layer in self.layers[::-1]:
             if isinstance(layer, Layer):
-                layer.Best_weight(load) #False : save , True : load
+                layer.best_weight(load) #False : save , True : load
 
     def accuracy(self, y_true, y_hat):
         '''
@@ -519,7 +524,7 @@ def split_data(x, y):
     return x_train, y_train, x_valid, y_valid
 
 
-def train(model, x_train, y_train, x_valid, y_valid, config):
+def train(model, x_train, y_train, x_valid, y_valid, config, patience=5):
     """
     Train your model here.
     Implement batch SGD to train the model.
@@ -538,14 +543,25 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
     holdout_loss_record = []
     holdout_accuracy_record = []
 
+    # How many times the validation loss has gone up in a row.
+    cur_loss_up_sequence = 0
+
     for epoch in range(epochs):
         batch_loss = []
         batch_accuracy = []
         for x, y in generate_minibatches(x_train, y_train, batch_size):
-            batch_loss.append(model.forward(x, y)[1]) # forward
-            model.backward() # backward
-            model.Updateweight() # update weight for each layer.
+            # Forward Pass
+            batch_loss.append(model.forward(x, y)[1]) 
+            # Backward Pass
+            model.backward()
+            # Calculate the accuracy of the batch.
             batch_accuracy.append(model.accuracy(x, y))
+        
+        # Update the weights once per epoch.
+        model.update_weights() # update weight for each layer.\
+        
+        # Zero out the weights.
+        model.zero_grad()
 
         train_loss = np.mean(np.array(batch_loss))
         train_accuracy = np.mean(np.array(batch_accuracy))
@@ -558,12 +574,21 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
         holdout_loss_record.append(holdout_loss)
         holdout_accuracy_record.append(holdout_accuracy)
 
-        if holdout_accuracy >= max(holdout_accuracy_record):
-            model.Bestweight(False)
-
-
         print(f' epoch: {epoch + 1}, train accuracy: {train_accuracy:.4f}, train_loss_norm:{train_loss:.4f}, '\
-            f'valid_acc: {holdout_accuracy:.4f}, valid_loss_norm: {holdout_loss:.4f}')     
+            f'valid_acc: {holdout_accuracy:.4f}, valid_loss_norm: {holdout_loss:.4f}')   
+
+        # Save the best weights according to test set.
+        if holdout_loss > holdout_loss_record[:-2]:
+            cur_loss_up_sequence += 1
+
+            if cur_loss_up_sequence >= patience:
+                # Load the best weights.
+                model.best_weight(load=True)
+                break
+        else:
+            cur_loss_up_sequence = 0
+            # Save the best weights.
+            model.best_weight(load=False)
 
     return train_accuracy_record
 
