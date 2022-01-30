@@ -146,6 +146,9 @@ def softmax(x):
     eX = np.exp(x - np.max(x, axis=1)[:, np.newaxis]) # e^X
     # [:, np.newaxis] is necessary for broadcasting to work properly
     partition = np.sum(eX, axis=1)[:, np.newaxis] # sum of each row
+    print("SANITYCHECK:", np.sum(eX/partition))
+    print(eX.shape)
+    print(partition.shape)
     return eX / partition
     
 
@@ -226,6 +229,9 @@ class Activation():
 
         elif self.activation_type == "ReLU":
             grad = self.grad_ReLU()
+        
+        elif self.activation_type == "leakyReLU":
+            grad = self.grad_leakyReLU()
 
         return grad * delta
 
@@ -240,16 +246,15 @@ class Activation():
 
     def tanh(self, x):
         """
-        TODO: Implement tanh here.
+        Implement tanh here.
         tanh(z) = (e^z - e^{-z})/(e^z + e^{-z})
         """
         self.x = x
-        #(np.exp(x) - np.exp(-x)) / (np.exp(x) + np.exp(-x))
         return np.tanh(self.x)
 
     def ReLU(self, x):
         """
-        TODO: Implement ReLU here.
+        Implement ReLU here.
         ReLU(z) = max(0, z)
         """
         self.x = x
@@ -257,7 +262,7 @@ class Activation():
 
     def leakyReLU(self, x):
         """
-        TODO: Implement leaky ReLU here.
+        Implement leaky ReLU here.
         leakyReLU(z) = max(0.1*z, z)
         """
         self.x = x
@@ -266,28 +271,28 @@ class Activation():
 
     def grad_sigmoid(self):
         """
-        TODO: Compute the gradient for sigmoid here.
+        Compute the gradient for sigmoid here.
         dsigmoid(z) = sigmoid(z) * (1 - sigmoid(z))
         """
         return self.sigmoid(self.x) * (1 - self.sigmoid(self.x))
 
     def grad_tanh(self):
         """
-        TODO: Compute the gradient for tanh here.
+        Compute the gradient for tanh here.
         dtanh(z) = 1 - tanh(z)^2
         """
         return 1 - np.tanh(self.x) ** 2
 
     def grad_ReLU(self):
         """
-        TODO: Compute the gradient for ReLU here.
+        Compute the gradient for ReLU here.
         dReLU(z) = 1 if z > 0 else 0
         """
         return np.where(self.x > 0, 1, 0)
 
     def grad_leakyReLU(self):
         """
-        TODO: Compute the gradient for leaky ReLU here.
+        Compute the gradient for leaky ReLU here.
         dleakyReLU(z) = 1 if z > 0 else 0.1
         """
         return np.where(self.x > 0, 1, 0.1)
@@ -341,11 +346,54 @@ class Layer():
         computes gradient for its weights and the delta to pass to its previous layers.
         Return self.dx
         """
+        print("in backward layer")
         size = self.x.shape[0]
+        print("size:", size)
+        print("delta:", delta.shape)
+
+        print("change:", np.sum(np.dot(self.x.T,delta)))
+        print("change:", np.sum(np.dot(self.x.T,delta) / size))
         self.d_x = np.dot(delta,self.w.T)
         self.d_w -= np.dot(self.x.T,delta) / size
+        print("*x.T_shape:", self.x.T.shape)
+        print("*delta_shape:", delta.shape)
+        print("*d_w_shape:", self.d_w.shape)
+        print("d_w : ", np.sum(self.d_w))
         self.d_b -= delta.sum(axis=0) / size
+        print("d_b : ", np.sum(self.d_w))
+
+
+
+        # grad_w = np.dot(X.T, (y_hat - y_true)) 
+        # grad_b = np.sum(y_hat - y_true) 
+
+        # self.W[:-1] -= self.lr * grad_w[:-1]
+        # self.W[-1] -= self.lr * grad_b
+
+
         return self.d_x
+
+    # def backward(self, delta):
+    #     """
+    #     TODO: Write the code for backward pass. This takes in gradient from its next layer as input,
+    #     computes gradient for its weights and the delta to pass to its previous layers.
+    #     Return self.dx
+    #     """
+    #     print("in backward layer")
+    #     size = self.x.shape[0]
+    #     print("size:", size)
+    #     print("delta:", delta.shape)
+
+    #     self.d_x = np.dot(delta,self.w.T)
+    #     self.d_w -= np.dot(self.x.T,delta) / size
+    #     print("*x.T_shape:", self.x.T.shape)
+    #     print("*delta_shape:", delta.shape)
+    #     print("*d_w_shape:", self.d_w.shape)
+    #     print("d_w : ", np.sum(self.d_w))
+    #     self.d_b -= delta.sum(axis=0) / size
+    #     print("d_b : ", np.sum(self.d_w))
+
+    #     return self.d_x
 
     def zero_grad(self):
         self.d_w = np.zeros_like(self.d_w)
@@ -355,10 +403,17 @@ class Layer():
         """
         updating layer weight
         """
+        print("updating weights in layer")
         if (momentum) : 
-            self.w += lr * ((1 - momentum_gamma) * self.d_w + momentum_gamma * self.pre_d_w) # need to check
-            self.b += lr * ((1 - momentum_gamma) * self.d_b + momentum_gamma * self.pre_d_b)    
-            
+            # self.w += lr * ((1 - momentum_gamma) * self.d_w + momentum_gamma * self.pre_d_w) # need to check
+            # self.b += lr * ((1 - momentum_gamma) * self.d_b + momentum_gamma * self.pre_d_b)    
+            self.w += lr * (self.d_w + momentum_gamma * self.pre_d_w) # need to check
+            self.b += lr * (self.d_b + momentum_gamma * self.pre_d_b)  
+
+            print("self.d_w:", np.sum(self.d_w))
+            print("self.w:", np.sum(self.w))
+            print("update:", np.sum(lr * (self.d_w + momentum_gamma * self.pre_d_w)))
+
             self.pre_d_w = self.d_w
             self.pre_d_b = self.d_b
         else : 
@@ -393,13 +448,14 @@ class Neuralnetwork():
         self.x = None        # Save the input to forward in this
         self.y = None        # Save the output vector of model in this
         self.targets = None  # Save the targets in forward in this variable
-        self.l2_penalty = None
         self.lr = config['learning_rate']  # learning rate add
         self.momentum = config['momentum']  # momentum
         self.momentum_gamma = config['momentum_gamma']  # momentum
-        self.L2 = config['L2_penalty']  # momentum
+        self.L2_penalty = config['L2_penalty']  # momentum
 
-
+        self.input_size = config['layer_specs'][0]
+        self.output_size = config['layer_specs'][-1]
+        
         # Add layers specified by layer_specs.
         for i in range(len(config['layer_specs']) - 1):
             self.layers.append(Layer(config['layer_specs'][i], config['layer_specs'][i+1]))
@@ -418,6 +474,7 @@ class Neuralnetwork():
         If targets are provided, return loss as well.
         """
         self.x = x
+        targets = targets.reshape((-1, self.output_size))
         self.targets = targets
 
         out = self.x
@@ -435,17 +492,26 @@ class Neuralnetwork():
 
         return self.y, loss
 
+    # def loss(self, logits, targets):
+    #     '''
+    #     TODO: compute the categorical cross-entropy loss and return it.
+    #     '''
+        
+    #     scale_size = targets.shape[0]
+    #     y_true = np.argmax(targets, axis=1)# decode
+    #     ce = np.log(logits[range(len(logits)), y_true])
+    #     return -np.sum(ce)/scale_size
+
     def loss(self, logits, targets):
         '''
         TODO: compute the categorical cross-entropy loss and return it.
         '''
-        
+        targets = targets.reshape((-1, self.output_size))
         scale_size = targets.shape[0]
         epsilon = 1e-14
         y_true = np.argmax(targets, axis=1)# decode
         ce = np.log(logits[range(len(logits)), y_true]+epsilon)
         return -np.sum(ce)/scale_size
-
 
     def backward(self):
         '''
@@ -454,8 +520,8 @@ class Neuralnetwork():
         '''
         delta = self.targets - self.y
         for layer in self.layers[::-1]:
-            if isinstance(layer, Layer):
-                delta = layer.backward(delta) #update delta
+            # if isinstance(layer, Layer):
+            delta = layer.backward(delta) #update delta
 
         return delta
 
@@ -626,8 +692,8 @@ if __name__ == "__main__":
     model  = Neuralnetwork(config_prob_b)
 
     # Load the data
-    x_train, y_train, stats = load_data(path="./data",stats = None, mode="train")
-    x_test, y_test = load_data(path="./data",stats = stats, mode="test")
+    x_train, y_train, stats = load_data(path="./data", stats = None, mode="train")
+    x_test, y_test = load_data(path="./data", stats = stats, mode="test")
 
     print(np.shape(x_train))
 
