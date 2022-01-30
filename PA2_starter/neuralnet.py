@@ -334,14 +334,16 @@ class Layer():
         self.d_w = np.zeros_like(self.d_w)
         self.d_b = np.zeros_like(self.d_b)
 
-    def updateweight(self, lr, momentum, momentum_gamma):
+    def updateweight(self, lr, L2,l2_penalty, momentum, momentum_gamma):
         """
         updating layer weight
         """
+        if (L2) : 
+            self.d_w -= self.w*l2_penalty
 
         if (momentum) : 
-            self.w += lr * (self.d_w + momentum_gamma * self.pre_d_w) # need to change again.
-            self.b += lr * (self.d_b + momentum_gamma * self.pre_d_b)
+            self.w += lr * (self.d_w*(momentum_gamma) + (1-momentum_gamma) * self.pre_d_w)
+            self.b += lr * (self.d_b*(momentum_gamma) + (1-momentum_gamma) * self.pre_d_b)
             
             self.pre_d_w = self.d_w
             self.pre_d_b = self.d_b
@@ -377,10 +379,10 @@ class Neuralnetwork():
         self.x = None        # Save the input to forward in this
         self.y = None        # Save the output vector of model in this
         self.targets = None  # Save the targets in forward in this variable
-        self.l2_penalty = None
         self.lr = config['learning_rate']  # learning rate add
         self.momentum = config['momentum']  # momentum
         self.momentum_gamma = config['momentum_gamma']  # momentum
+        self.l2_penalty = config['L2_penalty']  # momentum
 
 
         # Add layers specified by layer_specs.
@@ -420,7 +422,7 @@ class Neuralnetwork():
         '''
         
         scale_size = targets.shape[0]
-        epsilon = 1e-8
+        epsilon = 1e-9
         y_true = np.argmax(targets, axis=1)# decode
         ce = np.log(logits[range(len(logits)), y_true]+epsilon)
         return -np.sum(ce)/scale_size
@@ -440,14 +442,14 @@ class Neuralnetwork():
             if isinstance(layer, Layer):
                 layer.zero_grad()
 
-    def updateweight(self,momentum):
+    def updateweight(self, momentum, L2):
         '''
         TODO: Implement backpropagation here.
         Call backward methods of individual layers.
         '''
         for layer in self.layers[::-1]:
             if isinstance(layer, Layer):
-                layer.updateweight(self.lr,momentum,self.momentum_gamma)
+                layer.updateweight(self.lr,L2,self.l2_penalty,momentum,self.momentum_gamma)
                 
     def save_load_weight(self, save):
         '''
