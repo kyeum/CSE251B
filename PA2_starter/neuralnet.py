@@ -292,7 +292,7 @@ class Layer():
         """
         np.random.seed(42)
         self.w = np.random.randn(in_units, out_units)    #input layer size  output layer size     # >>EY : add randomize 
-        self.b = np.zeros((1, out_units)) # Create a placeholder for Bias        # >>EY : add randomize 
+        self.b = np.random.randn(1, out_units) # Create a placeholder for Bias        # >>EY : add randomize 
 
         self.x = None    # Save the input to forward in this
         self.a = None    # Save the output of forward pass in this (without activation)
@@ -330,35 +330,35 @@ class Layer():
         """
         size = self.x.shape[0]
         self.d_x = np.dot(delta,self.w.T)
-        self.d_w -= np.dot(self.x.T,delta) / size
-        self.d_b -= delta.mean(axis=0).reshape(1,-1)
-        print("self.d_b",self.d_b.shape)
+        # self.d_w += np.dot(self.x.T,delta) / size
+        self.d_w += np.dot(self.x.T,delta)
+        self.d_b += delta.mean(axis=0).reshape(1,-1)
+        # print("self.d_b",self.d_b.shape)
         return self.d_x
 
     def zero_grad(self):
         self.d_w = np.zeros_like(self.d_w)
         self.d_b = np.zeros_like(self.d_b)
 
-    def updateweight(self, lr, L2,l2_penalty, momentum, momentum_gamma):
+    def updateweight(self, lr, l2_penalty, momentum, momentum_gamma):
         """
         updating layer weight
         """
-        if (L2) : 
-            self.d_w -= self.w*l2_penalty
+        self.d_w -= self.w * l2_penalty
 
         if (momentum) : 
             # self.w += lr * ((1 - momentum_gamma) * self.d_w + momentum_gamma * self.pre_d_w) # need to check
             # self.b += lr * ((1 - momentum_gamma) * self.d_b + momentum_gamma * self.pre_d_b)
-            self.w += lr * (self.d_w + momentum_gamma * self.pre_d_w) # need to check
-            self.b += lr * (self.d_b + momentum_gamma * self.pre_d_b) 
+            self.w -= lr * (self.d_w + momentum_gamma * self.pre_d_w) 
+            self.b -= lr * (self.d_b + momentum_gamma * self.pre_d_b) 
             # self.w += lr * (self.d_w*(momentum_gamma) + (1-momentum_gamma) * self.pre_d_w)
             # self.b += lr * (self.d_b*(momentum_gamma) + (1-momentum_gamma) * self.pre_d_b)
             
             self.pre_d_w = self.d_w
             self.pre_d_b = self.d_b
         else : 
-            self.w += lr * self.d_w
-            self.b += lr * self.d_b
+            self.w -= lr * self.d_w
+            self.b -= lr * self.d_b
 
     def save_load_weight(self, save):
         if (save) : 
@@ -435,8 +435,8 @@ class Neuralnetwork():
         targets = targets.reshape((-1, self.output_size))
         scale_size = targets.shape[0]
         epsilon = 1e-9
-        y_true = np.argmax(targets, axis=1)# decode
-        ce = np.log(logits[range(len(logits)), y_true]+epsilon)
+        y_true = np.argmax(targets, axis=1) # decode
+        ce = np.log(logits[range(len(logits)), y_true] + epsilon)
         return -np.sum(ce) / scale_size / self.output_size
 
 
@@ -454,14 +454,14 @@ class Neuralnetwork():
             if isinstance(layer, Layer):
                 layer.zero_grad()
 
-    def updateweight(self, momentum, L2):
+    def updateweight(self):
         '''
         TODO: Implement backpropagation here.
         Call backward methods of individual layers.
         '''
         for layer in self.layers[::-1]:
             if isinstance(layer, Layer):
-                layer.updateweight(self.lr,L2,self.l2_penalty,momentum,self.momentum_gamma)
+                layer.updateweight(self.lr, self.l2_penalty, self.momentum, self.momentum_gamma)
                 
     def save_load_weight(self, save):
         '''
@@ -482,7 +482,7 @@ class Neuralnetwork():
         y = self.forward(x)
         true_labels = onehot_decode(target)
         pred_labels = np.argmax(y, axis=1)
-        return np.sum(true_labels == pred_labels) /target.shape[0]
+        return np.sum(true_labels == pred_labels) / target.shape[0]
 
    
 def generate_minibatches(Data,labels, batch_size=128):
@@ -523,7 +523,7 @@ def train(model, x_train, y_train, x_valid, y_valid, config, patience=5):
     batch_size = config['batch_size']
     momentum =    config['momentum']
     momentum_gamma = config['momentum_gamma']
-    L2_penalty = config['momentum_gamma']
+    L2_penalty = config['L2_penalty']
 
 
     train_loss_record = []
