@@ -297,10 +297,10 @@ class Layer():
         self.d_x = None  # Save the gradient w.r.t x in this
         self.d_w = np.zeros_like(self.w)  # Save the gradient w.r.t w in this
         self.d_b = np.zeros_like(self.b)  # Save the gradient w.r.t b in this
-        self.w_best = 0
-        self.b_best = 0
-        self.pre_d_w = 0
-        self.pre_d_b = 0
+        self.w_best = np.zeros_like(self.w)
+        self.b_best = np.zeros_like(self.b)
+        self.pre_d_w = np.zeros_like(self.w)
+        self.pre_d_b = np.zeros_like(self.b)
 
     def __call__(self, x):
         """
@@ -338,6 +338,7 @@ class Layer():
         """
         updating layer weight
         """
+
         if (momentum) : 
             self.w += lr * ((1 - momentum_gamma) * self.d_w + momentum_gamma * self.pre_d_w) # need to check
             self.b += lr * ((1 - momentum_gamma) * self.d_b + momentum_gamma * self.pre_d_b)    
@@ -401,20 +402,16 @@ class Neuralnetwork():
         """
         self.x = x.copy()
         self.targets = targets
-
         out = x.copy()
         for layer in self.layers:
             out = layer.forward(out)
-
         # Softmax
         self.y = softmax(out)
-
         if targets is None:
             return self.y
-    
+
         # Compute cross entropy loss
         loss = self.loss(self.y, targets)
-
         return self.y, loss
 
     def loss(self, logits, targets):
@@ -471,7 +468,7 @@ class Neuralnetwork():
         y = self.forward(x)
         true_labels = onehot_decode(target)
         pred_labels = np.argmax(y, axis=1)
-        return np.mean(true_labels == pred_labels) 
+        return np.sum(true_labels == pred_labels) /target.shape[0]
 
    
 def generate_minibatches(Data,labels, batch_size=128):
@@ -559,7 +556,6 @@ def train(model, x_train, y_train, x_valid, y_valid, config, patience=5):
             cur_loss_up_sequence += 1
 
             if cur_loss_up_sequence >= patience:
-                # Load the best weights.
                 model.save_load_weight(save=False)
                 break
         else:
@@ -569,9 +565,6 @@ def train(model, x_train, y_train, x_valid, y_valid, config, patience=5):
 
     return train_accuracy_record
 
-
-
-        
 
 def test(model, X_test, y_test):
     """
@@ -606,19 +599,13 @@ if __name__ == "__main__":
     x_train, y_train, stats = load_data(path="./data",stats = None, mode="train")
     x_test, y_test = load_data(path="./data",stats = stats, mode="test")
 
-
-
     # TODO(done): Create splits for validation data here.
     x_train, y_train, x_valid, y_valid = split_data(x_train,y_train)
-
 
 
     # TODO(on going): train the model
     trainacc = train(model_c, x_train, y_train, x_valid, y_valid, config_prob_c )
     print(trainacc)
-
-
-
 
     # TODO(done): test the model
     #test_acc = test(model, x_test, y_test)
