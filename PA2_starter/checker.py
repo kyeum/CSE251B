@@ -130,14 +130,13 @@ def sanity_network(data, default_config):
             error_b   = np.sum(np.abs(data['nnet'].layers[layer_idx].b   - layer.b))
             error_d_w = np.sum(np.abs(data['nnet'].layers[layer_idx].d_w - layer.d_w))
 
-            print(np.sum(data['nnet'].layers[layer_idx].d_w))
-            print(np.sum(layer.d_w))
-            print("error_dw:", error_d_w)
-            print(np.sum(data['nnet'].layers[layer_idx].d_b))
-            print(np.sum(layer.d_b))
-
+            # print(np.sum(data['nnet'].layers[layer_idx].d_w))
+            # print(np.sum(layer.d_w))
+            # print("error_dw:", error_d_w)
+            # print(np.sum(data['nnet'].layers[layer_idx].d_b))
+            # print(np.sum(layer.d_b))
             error_d_b = np.sum(np.abs(data['nnet'].layers[layer_idx].d_b - layer.d_b))
-            print("error_db:", error_d_b)
+            # print("error_db:", error_d_b)
 
             check_error(error_x,   f"Layer{layer_no}: Input")
             check_error(error_w,   f"Layer{layer_no}: Weights")
