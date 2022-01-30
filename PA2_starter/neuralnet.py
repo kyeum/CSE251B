@@ -208,6 +208,9 @@ class Activation():
         elif self.activation_type == "ReLU":
             grad = self.grad_ReLU()
 
+        elif self.activation_type == "leakyReLU":
+            grad = self.grad_leakyReLU()
+
         return grad * delta
 
     def sigmoid(self, x):
@@ -314,8 +317,9 @@ class Layer():
         DO NOT apply activation here.
         Return self.a
         """
+        x = x.reshape((-1, self.w.shape[0]))
         self.x = x.copy()
-        self.a = np.dot(self.x,self.w) + self.b
+        self.a = np.dot(self.x, self.w) + self.b
         return self.a
 
     def backward(self, delta):
@@ -326,8 +330,8 @@ class Layer():
         """
         size = self.x.shape[0]
         self.d_x = np.dot(delta,self.w.T)
-        self.d_w = np.dot(self.x.T,delta) / size
-        self.d_b = delta.mean(axis=0).reshape(1,-1)
+        self.d_w -= np.dot(self.x.T,delta) / size
+        self.d_b -= delta.mean(axis=0).reshape(1,-1)
         print("self.d_b",self.d_b.shape)
         return self.d_x
 
@@ -343,8 +347,12 @@ class Layer():
             self.d_w -= self.w*l2_penalty
 
         if (momentum) : 
-            self.w += lr * (self.d_w*(momentum_gamma) + (1-momentum_gamma) * self.pre_d_w)
-            self.b += lr * (self.d_b*(momentum_gamma) + (1-momentum_gamma) * self.pre_d_b)
+            # self.w += lr * ((1 - momentum_gamma) * self.d_w + momentum_gamma * self.pre_d_w) # need to check
+            # self.b += lr * ((1 - momentum_gamma) * self.d_b + momentum_gamma * self.pre_d_b)
+            self.w += lr * (self.d_w + momentum_gamma * self.pre_d_w) # need to check
+            self.b += lr * (self.d_b + momentum_gamma * self.pre_d_b) 
+            # self.w += lr * (self.d_w*(momentum_gamma) + (1-momentum_gamma) * self.pre_d_w)
+            # self.b += lr * (self.d_b*(momentum_gamma) + (1-momentum_gamma) * self.pre_d_b)
             
             self.pre_d_w = self.d_w
             self.pre_d_b = self.d_b
@@ -385,6 +393,8 @@ class Neuralnetwork():
         self.momentum_gamma = config['momentum_gamma']  # momentum
         self.l2_penalty = config['L2_penalty']  # momentum
 
+        self.input_size = config['layer_specs'][0]
+        self.output_size = config['layer_specs'][-1]
 
         # Add layers specified by layer_specs.
         for i in range(len(config['layer_specs']) - 1):
@@ -404,6 +414,7 @@ class Neuralnetwork():
         If targets are provided, return loss as well.
         """
         self.x = x.copy()
+        targets = targets.reshape((-1, self.output_size))
         self.targets = targets
         out = x.copy()
         for layer in self.layers:
@@ -421,12 +432,12 @@ class Neuralnetwork():
         '''
         TODO: compute the categorical cross-entropy loss and return it.
         '''
-        
+        targets = targets.reshape((-1, self.output_size))
         scale_size = targets.shape[0]
         epsilon = 1e-9
         y_true = np.argmax(targets, axis=1)# decode
         ce = np.log(logits[range(len(logits)), y_true]+epsilon)
-        return -np.sum(ce)/scale_size
+        return -np.sum(ce) / scale_size / self.output_size
 
 
     def backward(self):
