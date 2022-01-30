@@ -326,8 +326,8 @@ class Layer():
         """
         size = self.x.shape[0]
         self.d_x = np.dot(delta,self.w.T)
-        self.d_w -= np.dot(self.x.T,delta) / size
-        self.d_b -= delta.sum(axis=0) / size
+        self.d_w = np.dot(self.x.T,delta) / size
+        self.d_b = delta.mean(axis=0)
         return self.d_x
 
     def zero_grad(self):
@@ -340,8 +340,8 @@ class Layer():
         """
 
         if (momentum) : 
-            self.w += lr * ((1 - momentum_gamma) * self.d_w + momentum_gamma * self.pre_d_w) # need to check
-            self.b += lr * ((1 - momentum_gamma) * self.d_b + momentum_gamma * self.pre_d_b)    
+            self.w += lr * (self.d_w + momentum_gamma * self.pre_d_w) # need to change again.
+            self.b += lr * (self.d_b + momentum_gamma * self.pre_d_b)
             
             self.pre_d_w = self.d_w
             self.pre_d_b = self.d_b
@@ -440,14 +440,14 @@ class Neuralnetwork():
             if isinstance(layer, Layer):
                 layer.zero_grad()
 
-    def updateweight(self):
+    def updateweight(self,momentum):
         '''
         TODO: Implement backpropagation here.
         Call backward methods of individual layers.
         '''
         for layer in self.layers[::-1]:
             if isinstance(layer, Layer):
-                layer.updateweight(self.lr,self.momentum,self.momentum_gamma)
+                layer.updateweight(self.lr,momentum,self.momentum_gamma)
                 
     def save_load_weight(self, save):
         '''
