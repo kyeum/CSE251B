@@ -149,6 +149,25 @@ def softmax(x):
     return eX / partition
     
 
+def plot_PC(self):
+    '''
+    Plot top 4 principal components
+    the eigenvector with the largest eigenvalue is the first principal component,
+    '''
+    fig, axs = plt.subplots(2, 2)
+    fig.set_size_inches(8, 8)
+    fig.set_dpi(100)
+    axs[0, 0].set_title('PC 1')
+    axs[0, 0].imshow(self.principal_eigen_vectors.T[0].real.reshape((32, 32)))
+    axs[0, 1].set_title('PC 2')
+    axs[0, 1].imshow(self.principal_eigen_vectors.T[1].real.reshape((32, 32)))
+    axs[1, 0].set_title('PC: 3')
+    axs[1, 0].imshow(self.principal_eigen_vectors.T[2].real.reshape((32, 32)))
+    axs[1, 1].set_title('PC: 4')
+    axs[1, 1].imshow(self.principal_eigen_vectors.T[3].real.reshape((32, 32)))
+    plt.show()
+
+
 class Activation():
     """
     The class implements different types of activation functions for
@@ -258,6 +277,7 @@ class Activation():
         dtanh(z) = 1 - tanh(z)^2
         """
         return 1 - np.tanh(self.x) ** 2
+        
 
     def grad_ReLU(self):
         """
@@ -287,7 +307,7 @@ class Layer():
         """
         Define the architecture and create placeholder.
         """
-        np.random.seed(42)
+        np.random.seed(41)
         self.w = np.random.randn(in_units, out_units)    #input layer size  output layer size     # >>EY : add randomize 
         self.b = np.zeros((1, out_units)) # Create a placeholder for Bias        # >>EY : add randomize 
 
@@ -295,12 +315,13 @@ class Layer():
         self.a = None    # Save the output of forward pass in this (without activation)
 
         self.d_x = None  # Save the gradient w.r.t x in this
-        self.d_w = np.zeros_like(self.w)  # Save the gradient w.r.t w in this
-        self.d_b = np.zeros_like(self.b)  # Save the gradient w.r.t b in this
-        self.w_best = 0
-        self.b_best = 0
+        self.d_w = None  # Save the gradient w.r.t w in this
+        self.d_b = None  # Save the gradient w.r.t b in this
         self.pre_d_w = 0
         self.pre_d_b = 0
+        self.w_best = 0
+        self.b_best = 0
+
 
     def __call__(self, x):
         """
@@ -314,7 +335,8 @@ class Layer():
         DO NOT apply activation here.
         Return self.a
         """
-        self.x = x.copy()
+        #self.x = x.reshape((-1, self.w.shape[0]))
+        self.x = x
         self.a = np.dot(self.x,self.w) + self.b
         return self.a
 
@@ -326,21 +348,17 @@ class Layer():
         """
         size = self.x.shape[0]
         self.d_x = np.dot(delta,self.w.T)
-        self.d_w -= np.dot(self.x.T,delta) / size
-        self.d_b -= delta.sum(axis=0) / size
+        self.d_w = -np.dot(self.x.T,delta)
+        self.d_b = -delta.sum(axis=0)
         return self.d_x
-
-    def zero_grad(self):
-        self.d_w = np.zeros_like(self.d_w)
-        self.d_b = np.zeros_like(self.d_b)
 
     def updateweight(self, lr, momentum, momentum_gamma):
         """
         updating layer weight
         """
-        if (momentum) : 
-            self.w += lr * ((1 - momentum_gamma) * self.d_w + momentum_gamma * self.pre_d_w) # need to check
-            self.b += lr * ((1 - momentum_gamma) * self.d_b + momentum_gamma * self.pre_d_b)    
+        if(momentum) : 
+            self.w += lr * self.d_w + momentum_gamma * self.pre_d_w # need to check
+            self.b += lr * self.d_b + momentum_gamma * self.pre_d_b    
             
             self.pre_d_w = self.d_w
             self.pre_d_b = self.d_b
@@ -348,8 +366,8 @@ class Layer():
             self.w += lr * self.d_w
             self.b += lr * self.d_b
 
-    def save_load_weight(self, save):
-        if (save) : 
+    def save_load_weight(self,save = True):
+        if(save) : 
             self.w = self.w_best
             self.b = self.b_best  
         else :     
@@ -380,6 +398,7 @@ class Neuralnetwork():
         self.lr = config['learning_rate']  # learning rate add
         self.momentum = config['momentum']  # momentum
         self.momentum_gamma = config['momentum_gamma']  # momentum
+        self.L2 = config['L2_penalty']  # momentum
 
 
         # Add layers specified by layer_specs.
@@ -399,10 +418,11 @@ class Neuralnetwork():
         TODO: Compute forward pass through all the layers in the network and return it.
         If targets are provided, return loss as well.
         """
-        self.x = x.copy()
+        self.x = x
         self.targets = targets
 
-        out = x.copy()
+        out = self.x
+
         for layer in self.layers:
             out = layer.forward(out)
 
@@ -411,7 +431,7 @@ class Neuralnetwork():
 
         if targets is None:
             return self.y
-    
+
         # Compute cross entropy loss
         loss = self.loss(self.y, targets)
 
@@ -423,7 +443,7 @@ class Neuralnetwork():
         '''
         
         scale_size = targets.shape[0]
-        epsilon = 1e-8
+        epsilon = 1e-14
         y_true = np.argmax(targets, axis=1)# decode
         ce = np.log(logits[range(len(logits)), y_true]+epsilon)
         return -np.sum(ce)/scale_size
@@ -437,47 +457,45 @@ class Neuralnetwork():
         delta = self.targets - self.y
         for layer in self.layers[::-1]:
             delta = layer.backward(delta) #update delta
+        return delta
 
-    def zero_grad(self):
-        for layer in self.layers:
-            if isinstance(layer, Layer):
-                layer.zero_grad()
-
-    def updateweight(self):
+    def updateweight(self, momentum):
         '''
         TODO: Implement backpropagation here.
         Call backward methods of individual layers.
         '''
         for layer in self.layers[::-1]:
             if isinstance(layer, Layer):
-                layer.updateweight(self.lr,self.momentum,self.momentum_gamma)
+                layer.updateweight(self.lr,momentum,self.momentum_gamma)
                 
-    def save_load_weight(self, save):
+    def save_load_weight(self, save = True):
         '''
         TODO: Implement backpropagation here.
         Call backward methods of individual layers.
         '''
-        for layer in self.layers:
+        for layer in self.layers[::-1]:
             if isinstance(layer, Layer):
                 layer.save_load_weight(save) #False : save , True : load
 
-    def accuracy(self,x,target):
+    def accuracy(self):
         '''
         Calculate accuracy
 
         y_true: true labels (onehot)
         y_hat: predicted labels
         '''
-        y = self.forward(x)
-        true_labels = onehot_decode(target)
-        pred_labels = np.argmax(y, axis=1)
-        return np.mean(true_labels == pred_labels) 
+
+        true_labels = onehot_decode(self.targets)
+        pred_labels = np.argmax(self.y, axis=1)
+        return np.sum(true_labels == pred_labels) / self.targets.shape[0]    
 
    
 def generate_minibatches(Data,labels, batch_size=128):
+    #need to permutation
     order = np.random.permutation(len(Data)) # shuffle
     Data = Data[order]
     labels = labels[order]
+
     l_idx, r_idx = 0, batch_size
     while r_idx < len(Data):
         yield Data[l_idx:r_idx], labels[l_idx:r_idx]
@@ -501,7 +519,7 @@ def split_data(x, y):
     return x[t_l], y[t_l], x[val_l], y[val_l]
 
 
-def train(model, x_train, y_train, x_valid, y_valid, config, patience=5):
+def train(model, x_train, y_train, x_valid, y_valid, config):
     """
     Train your model here.
     Implement batch SGD to train the model.
@@ -511,62 +529,37 @@ def train(model, x_train, y_train, x_valid, y_valid, config, patience=5):
     epochs = config['epochs']
     batch_size = config['batch_size']
     momentum =    config['momentum']
-    momentum_gamma = config['momentum_gamma']
-    L2_penalty = config['momentum_gamma']
-
 
     train_loss_record = []
     train_accuracy_record = []
     holdout_loss_record = []
     holdout_accuracy_record = []
 
-    # How many times the validation loss has gone up in a row.
-    cur_loss_up_sequence = 0
-
     for epoch in range(epochs):
         batch_loss = []
         batch_accuracy = []
         for x, y in generate_minibatches(x_train, y_train, batch_size):
-            # Forward Pass
-            batch_loss.append(model.forward(x, y)[1]) 
-            # Backward Pass
-            model.backward()
+            batch_loss.append(model.forward(x, y)[1]) # forward
+            model.backward() # backward
+            model.updateweight(momentum) # update weight for each layer.
+            batch_accuracy.append(model.accuracy()) # add append data.
 
-            # Calculate the accuracy of the batch.
-            batch_accuracy.append(model.accuracy())
-        
-        # Update the weights once per epoch.
-        model.updateweight() # update weight for each layer.\
-    
-        # Zero out the weights.
-        model.zero_grad()
+        train_loss = np.mean(np.array(batch_loss))
+        train_accuracy = np.mean(np.array(batch_accuracy))
 
-        train_loss = model.forward(x_train, y)[1]
-        train_accuracy = model.accuracy()
-        holdout_loss = model.forward(x_valid, y_valid)[1]
-        holdout_accuracy = model.accuracy()
+        #holdout_loss = model.forward(x_valid, y_valid)[1]
+        #holdout_accuracy = model.accuracy(x_valid, y_valid)
 
         train_loss_record.append(train_loss)
         train_accuracy_record.append(train_accuracy)
-        holdout_loss_record.append(holdout_loss)
-        holdout_accuracy_record.append(holdout_accuracy)
+        #holdout_loss_record.append(holdout_loss)
+        #holdout_accuracy_record.append(holdout_accuracy)
 
-        print(f' epoch: {epoch + 1}, train accuracy: {train_accuracy:.4f}, train_loss_norm:{train_loss:.4f}, '\
-            f'valid_acc: {holdout_accuracy:.4f}, valid_loss_norm: {holdout_loss:.4f}')   
+        #if holdout_accuracy >= max(holdout_accuracy_record):
+        #    model.save_load_weight(True)
 
-        # Save the best weights according to test set.
-        if holdout_loss > holdout_loss_record[:-2]:
-            cur_loss_up_sequence += 1
 
-            if cur_loss_up_sequence >= patience:
-                # Load the best weights.
-                model.save_load_weight(save=False)
-                break
-        else:
-            cur_loss_up_sequence = 0
-            # Save the best weights.
-            model.save_load_weight(save=True)
-
+        print(f' epoch: {epoch + 1}, train accuracy: {train_accuracy:.4f}, train_loss_norm:{train_loss:.4f})')
     return train_accuracy_record
 
 
@@ -588,41 +581,36 @@ if __name__ == "__main__":
 
     config = load_config("./data")
 
-    config_prob_c = {}
-    config_prob_c['layer_specs'] = [3072, 64, 64, 10]
-    config_prob_c['activation'] = 'tanh'
-    config_prob_c['learning_rate'] = 0.05 
-    config_prob_c['batch_size'] = 128 
-    config_prob_c['epochs'] = 100  
-    config_prob_c['early_stop'] = True 
-    config_prob_c['early_stop_epoch'] = 5  
-    config_prob_c['L2_penalty'] = 0  
-    config_prob_c['momentum'] = True  
-    config_prob_c['momentum_gamma'] = 0.9  
+    config_prob_b = {}
+    config_prob_b['layer_specs'] = [3072, 64, 64, 10]
+    config_prob_b['activation'] = 'tanh'
+    config_prob_b['learning_rate'] = 0.3
+    config_prob_b['batch_size'] = 128 
+    config_prob_b['epochs'] = 100  
+    config_prob_b['early_stop'] = True 
+    config_prob_b['early_stop_epoch'] = 5  
+    config_prob_b['L2_penalty'] = 0  
+    config_prob_b['momentum'] = True  
+    config_prob_b['momentum_gamma'] = 0.9  
     # Create the model
-    model_c  = Neuralnetwork(config_prob_c)
+    model  = Neuralnetwork(config_prob_b)
 
     # Load the data
     x_train, y_train, stats = load_data(path="./data",stats = None, mode="train")
     x_test, y_test = load_data(path="./data",stats = stats, mode="test")
 
+    print(np.shape(x_train))
 
 
     # TODO(done): Create splits for validation data here.
     x_train, y_train, x_valid, y_valid = split_data(x_train,y_train)
 
-
-
     # TODO(on going): train the model
-    trainacc = train(model_c, x_train, y_train, x_valid, y_valid, config_prob_c )
+    trainacc = train(model, x_train, y_train, x_valid, y_valid, config_prob_b)
     print(trainacc)
 
-
-
-
     # TODO(done): test the model
-    #test_acc = test(model, x_test, y_test)
-
+    test_acc = test(model, x_test, y_test)
 
     # TODO(on going): Plots
-
+    # plt.plot(...)
