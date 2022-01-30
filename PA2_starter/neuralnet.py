@@ -327,7 +327,8 @@ class Layer():
         size = self.x.shape[0]
         self.d_x = np.dot(delta,self.w.T)
         self.d_w = np.dot(self.x.T,delta) / size
-        self.d_b = delta.mean(axis=0)
+        self.d_b = delta.mean(axis=0).reshape(1,-1)
+        print("self.d_b",self.d_b.shape)
         return self.d_x
 
     def zero_grad(self):
