@@ -15,8 +15,6 @@ import numpy as np
 import pickle
 import random
 
-
-
 def load_config(path):
     """
     Load the configuration from config.yaml.
@@ -146,9 +144,9 @@ def softmax(x):
     eX = np.exp(x - np.max(x, axis=1)[:, np.newaxis]) # e^X
     # [:, np.newaxis] is necessary for broadcasting to work properly
     partition = np.sum(eX, axis=1)[:, np.newaxis] # sum of each row
-    print("SANITYCHECK:", np.sum(eX/partition))
-    print(eX.shape)
-    print(partition.shape)
+    # print("SANITYCHECK:", np.sum(eX/partition))
+    # print(eX.shape)
+    # print(partition.shape)
     return eX / partition
     
 
@@ -233,7 +231,10 @@ class Activation():
         elif self.activation_type == "leakyReLU":
             grad = self.grad_leakyReLU()
 
-        return grad * delta
+        print("grad_SHAPE:", grad.shape)
+        print("delta_SHAPE:", delta.shape)
+        # return grad * delta
+        return np.dot(grad.T, delta)
 
     def sigmoid(self, x):
         """
@@ -241,7 +242,6 @@ class Activation():
         sigmoid(z) = 1 / (1 + e^{-z})
         """
         self.x = x
-
         return 1 / (1 + np.exp(-x))
 
     def tanh(self, x):
@@ -266,7 +266,6 @@ class Activation():
         leakyReLU(z) = max(0.1*z, z)
         """
         self.x = x
-
         return np.maximum(0.1 * x, x)
 
     def grad_sigmoid(self):
@@ -313,16 +312,19 @@ class Layer():
         """
         np.random.seed(41)
         self.w = np.random.randn(in_units, out_units)    #input layer size  output layer size     # >>EY : add randomize 
-        self.b = np.zeros((1, out_units)) # Create a placeholder for Bias        # >>EY : add randomize 
+        self.b = np.random.randn(1, out_units) # Create a placeholder for Bias        # >>EY : add randomize 
 
         self.x = None    # Save the input to forward in this
         self.a = None    # Save the output of forward pass in this (without activation)
 
         self.d_x = None  # Save the gradient w.r.t x in this
+
         self.d_w = np.zeros_like(self.w)  # Save the gradient w.r.t w in this
         self.d_b = np.zeros_like(self.b)  # Save the gradient w.r.t b in this
-        self.pre_d_w = 0
-        self.pre_d_b = 0
+        self.pre_d_w = np.zeros_like(self.w)
+        self.pre_d_b = np.zeros_like(self.b)
+        self.w_best = np.zeros_like(self.w)
+        self.b_best = np.zeros_like(self.b)
 
     def __call__(self, x):
         """
@@ -350,9 +352,9 @@ class Layer():
         size = self.x.shape[0]
         print("size:", size)
         print("delta:", delta.shape)
+        print("------delta:", np.sum(delta))
 
-        print("change:", np.sum(np.dot(self.x.T,delta)))
-        print("change:", np.sum(np.dot(self.x.T,delta) / size))
+        print("_----_****change:", np.sum(np.dot(self.x.T,delta)))
         self.d_x = np.dot(delta,self.w.T)
         self.d_w -= np.dot(self.x.T,delta) / size
         print("*x.T_shape:", self.x.T.shape)
@@ -404,7 +406,8 @@ class Layer():
         updating layer weight
         """
         print("updating weights in layer")
-        if (momentum) : 
+        if (not momentum) : 
+            print("MOMENTUM")
             # self.w += lr * ((1 - momentum_gamma) * self.d_w + momentum_gamma * self.pre_d_w) # need to check
             # self.b += lr * ((1 - momentum_gamma) * self.d_b + momentum_gamma * self.pre_d_b)    
             self.w += lr * (self.d_w + momentum_gamma * self.pre_d_w) # need to check
@@ -417,8 +420,12 @@ class Layer():
             self.pre_d_w = self.d_w
             self.pre_d_b = self.d_b
         else : 
+
+            print("NO MOMENTUM")
+            print("-----W_BEFORE:", np.sum(self.w))
             self.w += lr * self.d_w
             self.b += lr * self.d_b
+            print("-----W_AFTER:", np.sum(self.w))
 
     def best_weight(self, load = False):
         if (load) : 
@@ -511,7 +518,8 @@ class Neuralnetwork():
         epsilon = 1e-14
         y_true = np.argmax(targets, axis=1)# decode
         ce = np.log(logits[range(len(logits)), y_true]+epsilon)
-        return -np.sum(ce)/scale_size
+        # divide by num_classes and scale_size
+        return -np.sum(ce) / scale_size / self.output_size
 
     def backward(self):
         '''
@@ -519,6 +527,23 @@ class Neuralnetwork():
         Call backward methods of individual layers.
         '''
         delta = self.targets - self.y
+
+        # temp = self.y.reshape((-1, self.output_size))
+        # d_softmax = (                                                           
+        #     temp * np.identity(temp.size)                                 
+        #     - temp.T @ temp)
+        # delta = np.dot(delta, d_softmax)
+
+        # temp = temp.reshape(-1, 1)
+        # temp = np.diagflat(temp) - np.dot(temp, temp.T)
+        # delta = np.dot(delta, temp)
+
+        # print("----------------d_softmax:", d_softmax.shape)
+        # print("----------------d_softmax:", np.sum(d_softmax))
+
+        print("--------------------targest:", self.targets)
+        print("------------------y:", self.y)
+        print("-------------------delta:", np.sum(delta))
         for layer in self.layers[::-1]:
             # if isinstance(layer, Layer):
             delta = layer.backward(delta) #update delta
