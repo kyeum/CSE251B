@@ -319,8 +319,8 @@ class Layer():
         self.d_x = np.dot(delta,self.w.T)
         # self.d_w += np.dot(self.x.T,delta) / size
         # self.d_b += delta.mean(axis=0)
-        self.d_w += np.dot(self.x.T,delta)
-        self.d_b += delta.sum(axis=0)
+        self.d_w += np.dot(self.x.T,delta)/10 # devide by class
+        self.d_b += delta.sum(axis=0)/10
         return self.d_x
 
     def zero_grad(self):
@@ -335,14 +335,12 @@ class Layer():
         self.d_w /= num_batches
         self.d_b /= num_batches
 
-        print("d_w:", np.sum(self.d_w))
-        print("d_b:", np.sum(self.d_b))
-
-        print("pre_d_w:", np.sum(self.pre_d_w))
-        print("pre_d_b:", np.sum(self.pre_d_b))
+        #print("d_b:", np.sum(self.d_b))
+        #print("pre_d_w:", np.sum(self.pre_d_w))
+        #print("pre_d_b:", np.sum(self.pre_d_b))
 
         # TODO: put before or after gradient batch averaging
-        self.d_w -= self.w * l2_penalty
+        self.d_w += self.w * l2_penalty
 
         if (momentum) : 
             self.w -= lr * (self.d_w + momentum_gamma * self.pre_d_w)
@@ -360,13 +358,15 @@ class Layer():
             self.w -= lr * self.d_w 
             self.b -= lr * self.d_b 
 
+        self.zero_grad()
+
     def save_load_weight(self, save):
         if (save) : 
-            self.w = self.w_best
-            self.b = self.b_best  
+            self.w_best = self.w 
+            self.b_best = self.b   
         else :     
-            self.w_best = self.w
-            self.b_best = self.b
+            self.w = self.w_best
+            self.b = self.b_best 
 
 
 
@@ -447,10 +447,7 @@ class Neuralnetwork():
         Call backward methods of individual layers.
         '''
         self.num_batches += 1
-        # delta = self.targets - self.y
         delta = -(self.targets - self.y)  
-        # delta = -(self.targets - self.y) / self.output_size
-        # delta = -(self.targets - self.y) / self.output_size / self.targets.shape[0]
         for layer in self.layers[::-1]:
             delta = layer.backward(delta) #update delta
 
@@ -484,7 +481,7 @@ class Neuralnetwork():
         y_true: true labels (onehot)
         y_hat: predicted labels
         '''
-        y = self.forward(x)
+        y,l = self.forward(x,target)
         true_labels = onehot_decode(target)
         pred_labels = np.argmax(y, axis=1)
         return np.sum(true_labels == pred_labels) /target.shape[0]
