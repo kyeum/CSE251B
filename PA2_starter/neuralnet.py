@@ -331,8 +331,8 @@ class Layer():
         size = self.x.shape[0]
         self.d_x = np.dot(delta,self.w.T)
         # self.d_w += np.dot(self.x.T,delta) / size
-        self.d_w -= np.dot(self.x.T,delta) / size
-        self.d_b -= delta.mean(axis=0).reshape(1,-1)
+        self.d_w += np.dot(self.x.T,delta) / size
+        self.d_b += delta.mean(axis=0).reshape(1,-1)
         # self.d_b -= delta.sum(axis=0).reshape(1,-1)
         # print("self.d_b",self.d_b.shape)
         return self.d_x
@@ -350,16 +350,16 @@ class Layer():
         if (momentum) : 
             # self.w += lr * ((1 - momentum_gamma) * self.d_w + momentum_gamma * self.pre_d_w) # need to check
             # self.b += lr * ((1 - momentum_gamma) * self.d_b + momentum_gamma * self.pre_d_b)
-            self.w += lr * (self.d_w + momentum_gamma * self.pre_d_w) 
-            self.b += lr * (self.d_b + momentum_gamma * self.pre_d_b) 
+            self.w -= lr * (self.d_w + momentum_gamma * self.pre_d_w) 
+            self.b -= lr * (self.d_b + momentum_gamma * self.pre_d_b) 
             # self.w += lr * (self.d_w*(momentum_gamma) + (1-momentum_gamma) * self.pre_d_w)
             # self.b += lr * (self.d_b*(momentum_gamma) + (1-momentum_gamma) * self.pre_d_b)
             
             self.pre_d_w = self.d_w
             self.pre_d_b = self.d_b
         else : 
-            self.w += lr * self.d_w
-            self.b += lr * self.d_b
+            self.w -= lr * self.d_w
+            self.b -= lr * self.d_b
 
     def save_load_weight(self, save):
         if (save) : 
@@ -446,7 +446,7 @@ class Neuralnetwork():
         TODO: Implement backpropagation here.
         Call backward methods of individual layers.
         '''
-        delta = (self.targets - self.y) / self.output_size / self.targets.shape[0]
+        delta = (self.y - self.targets) / self.output_size / self.targets.shape[0]
         for layer in self.layers[::-1]:
             delta = layer.backward(delta) #update delta
 
