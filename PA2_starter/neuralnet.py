@@ -27,19 +27,15 @@ def load_config(path):
 def normalize_data(inp):
     """
     TODO: Normalize your inputs here to have 0 mean and unit variance by z scoring.
-
     input = batch_size x 32 x 32 x 3
-
     f(x) = (x - μ) / σ
         where 
             μ = mean of x
             σ = standard deviation of x
-
     Parameters
     ----------
     inp : np.array
         The data to z-score normalize
-
     Returns
     -------
         Tuple:
@@ -65,19 +61,14 @@ def normalize_data_given(X, stats):
 def one_hot_encoding(labels):
     """
     TODO: Encode labels using one hot encoding and return them.
-
     Performs one-hot encoding on y.
-
     Assumes 0-indexed classes.
-
     Ideas:
         NumPy's `eye` function
-
     Parameters
     ----------
     y : np.array
         1d array (length n) of targets (k)
-
     Returns
     -------
         2d array (shape n*k) with each row corresponding to a one-hot encoded version of the original value.
@@ -137,9 +128,7 @@ def softmax(x):
     """
     TODO: Implement the softmax function here.
     Remember to take care of the overflow condition.
-
     Softmax activation function
-
     Input: X (n elements x k classes)
     """
     
@@ -153,7 +142,6 @@ class Activation():
     """
     The class implements different types of activation functions for
     your neural network layers.
-
     Example (for sigmoid):
         >>> sigmoid_layer = Activation("sigmoid")
         >>> z = sigmoid_layer(a)
@@ -280,7 +268,6 @@ class Activation():
 class Layer():
     """
     This class implements Fully Connected layers for your neural network.
-
     Example:
         >>> fully_connected_layer = Layer(784, 100)
         >>> output = fully_connected_layer(input)
@@ -291,7 +278,7 @@ class Layer():
         Define the architecture and create placeholder.
         """
         np.random.seed(42)
-        self.w = np.random.randn(in_units, out_units)    #input layer size  output layer size     # >>EY : add randomize 
+        self.w = np.random.randn(in_units, out_units) #input layer size  output layer size     # >>EY : add randomize 
         self.b = np.random.randn(1, out_units) # Create a placeholder for Bias        # >>EY : add randomize 
 
         self.x = None    # Save the input to forward in this
@@ -317,9 +304,8 @@ class Layer():
         DO NOT apply activation here.
         Return self.a
         """
-        x = x.reshape((-1, self.w.shape[0]))
         self.x = x.copy()
-        self.a = np.dot(self.x, self.w) + self.b
+        self.a = np.dot(self.x,self.w) + self.b
         return self.a
 
     def backward(self, delta):
@@ -329,37 +315,50 @@ class Layer():
         Return self.dx
         """
         size = self.x.shape[0]
+        # print("size:", size)
         self.d_x = np.dot(delta,self.w.T)
         # self.d_w += np.dot(self.x.T,delta) / size
-        self.d_w += np.dot(self.x.T,delta) / size
-        self.d_b += delta.mean(axis=0).reshape(1,-1)
-        # self.d_b -= delta.sum(axis=0).reshape(1,-1)
-        # print("self.d_b",self.d_b.shape)
+        # self.d_b += delta.mean(axis=0)
+        self.d_w += np.dot(self.x.T,delta)
+        self.d_b += delta.sum(axis=0)
         return self.d_x
 
     def zero_grad(self):
         self.d_w = np.zeros_like(self.d_w)
         self.d_b = np.zeros_like(self.d_b)
 
-    def updateweight(self, lr, l2_penalty, momentum, momentum_gamma):
+    def updateweight(self, lr, l2_penalty, momentum, momentum_gamma, num_batches):
         """
         updating layer weight
         """
+        # Average gradient by batch size.
+        self.d_w /= num_batches
+        self.d_b /= num_batches
+
+        print("d_w:", np.sum(self.d_w))
+        print("d_b:", np.sum(self.d_b))
+
+        print("pre_d_w:", np.sum(self.pre_d_w))
+        print("pre_d_b:", np.sum(self.pre_d_b))
+
+        # TODO: put before or after gradient batch averaging
         self.d_w -= self.w * l2_penalty
 
         if (momentum) : 
-            # self.w += lr * ((1 - momentum_gamma) * self.d_w + momentum_gamma * self.pre_d_w) # need to check
-            # self.b += lr * ((1 - momentum_gamma) * self.d_b + momentum_gamma * self.pre_d_b)
-            self.w -= lr * (self.d_w + momentum_gamma * self.pre_d_w) 
-            self.b -= lr * (self.d_b + momentum_gamma * self.pre_d_b) 
-            # self.w += lr * (self.d_w*(momentum_gamma) + (1-momentum_gamma) * self.pre_d_w)
-            # self.b += lr * (self.d_b*(momentum_gamma) + (1-momentum_gamma) * self.pre_d_b)
+            self.w -= lr * (self.d_w + momentum_gamma * self.pre_d_w)
+            self.b -= lr * (self.d_b + momentum_gamma * self.pre_d_b)
+
+            # self.w -= lr * ((1 - momentum_gamma) * self.d_w + momentum_gamma * self.pre_d_w)
+            # self.b -= lr * ((1 - momentum_gamma) * self.d_b + momentum_gamma * self.pre_d_b)
+
+            # self.w += lr * (self.d_w*(momentum_gamma) / 175 + (1-momentum_gamma) * self.pre_d_w) 
+            # self.b += lr * (self.d_b*(momentum_gamma) / 175 + (1-momentum_gamma) * self.pre_d_b) 
             
             self.pre_d_w = self.d_w
             self.pre_d_b = self.d_b
         else : 
-            self.w -= lr * self.d_w
-            self.b -= lr * self.d_b
+            self.w -= lr * self.d_w 
+            self.b -= lr * self.d_b 
 
     def save_load_weight(self, save):
         if (save) : 
@@ -374,7 +373,6 @@ class Layer():
 class Neuralnetwork():
     """
     Create a Neural Network specified by the input configuration.
-
     Example:
         >>> net = NeuralNetwork(config)
         >>> output = net(input)
@@ -393,6 +391,8 @@ class Neuralnetwork():
         self.momentum = config['momentum']  # momentum
         self.momentum_gamma = config['momentum_gamma']  # momentum
         self.l2_penalty = config['L2_penalty']  # momentum
+
+        self.num_batches = 0
 
         self.input_size = config['layer_specs'][0]
         self.output_size = config['layer_specs'][-1]
@@ -415,7 +415,6 @@ class Neuralnetwork():
         If targets are provided, return loss as well.
         """
         self.x = x.copy()
-        targets = targets.reshape((-1, self.output_size))
         self.targets = targets
         out = x.copy()
         for layer in self.layers:
@@ -436,8 +435,9 @@ class Neuralnetwork():
         targets = targets.reshape((-1, self.output_size))
         scale_size = targets.shape[0]
         epsilon = 1e-9
-        y_true = np.argmax(targets, axis=1) # decode
-        ce = np.log(logits[range(len(logits)), y_true] + epsilon)
+        y_true = np.argmax(targets, axis=1)# decode
+        ce = np.log(logits[range(len(logits)), y_true]+epsilon)
+        # Normalize loss by batch size and num classes
         return -np.sum(ce) / scale_size / self.output_size
 
 
@@ -446,11 +446,16 @@ class Neuralnetwork():
         TODO: Implement backpropagation here.
         Call backward methods of individual layers.
         '''
-        delta = (self.y - self.targets) / self.output_size / self.targets.shape[0]
+        self.num_batches += 1
+        # delta = self.targets - self.y
+        delta = -(self.targets - self.y)  
+        # delta = -(self.targets - self.y) / self.output_size
+        # delta = -(self.targets - self.y) / self.output_size / self.targets.shape[0]
         for layer in self.layers[::-1]:
             delta = layer.backward(delta) #update delta
 
     def zero_grad(self):
+        self.num_batches = 0.0
         for layer in self.layers:
             if isinstance(layer, Layer):
                 layer.zero_grad()
@@ -462,7 +467,7 @@ class Neuralnetwork():
         '''
         for layer in self.layers[::-1]:
             if isinstance(layer, Layer):
-                layer.updateweight(self.lr, self.l2_penalty, self.momentum, self.momentum_gamma)
+                layer.updateweight(self.lr,self.l2_penalty,self.momentum,self.momentum_gamma, self.num_batches)
                 
     def save_load_weight(self, save):
         '''
@@ -476,14 +481,13 @@ class Neuralnetwork():
     def accuracy(self,x,target):
         '''
         Calculate accuracy
-
         y_true: true labels (onehot)
         y_hat: predicted labels
         '''
         y = self.forward(x)
         true_labels = onehot_decode(target)
         pred_labels = np.argmax(y, axis=1)
-        return np.sum(true_labels == pred_labels) / target.shape[0]
+        return np.sum(true_labels == pred_labels) /target.shape[0]
 
    
 def generate_minibatches(Data,labels, batch_size=128):
@@ -524,7 +528,7 @@ def train(model, x_train, y_train, x_valid, y_valid, config, patience=5):
     batch_size = config['batch_size']
     momentum =    config['momentum']
     momentum_gamma = config['momentum_gamma']
-    L2_penalty = config['L2_penalty']
+    L2_penalty = config['momentum_gamma']
 
 
     train_loss_record = []
@@ -627,4 +631,3 @@ if __name__ == "__main__":
 
 
     # TODO(on going): Plots
-
