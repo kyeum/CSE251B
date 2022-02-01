@@ -343,8 +343,10 @@ class Layer():
         self.d_w += self.w * l2_penalty
 
         if (momentum) : 
-            self.w -= lr * (self.d_w + momentum_gamma * self.pre_d_w)
-            self.b -= lr * (self.d_b + momentum_gamma * self.pre_d_b)
+            weight_change_w = self.d_w + momentum_gamma * self.pre_d_w
+            weight_change_b = self.d_b + momentum_gamma * self.pre_d_b
+            self.w -= lr * weight_change_w
+            self.b -= lr * weight_change_b
 
             # self.w -= lr * ((1 - momentum_gamma) * self.d_w + momentum_gamma * self.pre_d_w)
             # self.b -= lr * ((1 - momentum_gamma) * self.d_b + momentum_gamma * self.pre_d_b)
@@ -352,8 +354,8 @@ class Layer():
             # self.w += lr * (self.d_w*(momentum_gamma) / 175 + (1-momentum_gamma) * self.pre_d_w) 
             # self.b += lr * (self.d_b*(momentum_gamma) / 175 + (1-momentum_gamma) * self.pre_d_b) 
             
-            self.pre_d_w = self.d_w
-            self.pre_d_b = self.d_b
+            self.pre_d_w = weight_change_w
+            self.pre_d_b = weight_change_b
         else : 
             self.w -= lr * self.d_w 
             self.b -= lr * self.d_b 
