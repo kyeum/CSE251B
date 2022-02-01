@@ -319,8 +319,8 @@ class Layer():
         self.d_x = np.dot(delta,self.w.T)
         # self.d_w += np.dot(self.x.T,delta) / size
         # self.d_b += delta.mean(axis=0)
-        self.d_w += np.dot(self.x.T,delta)/10 # devide by class
-        self.d_b += delta.sum(axis=0)/10
+        self.d_w = np.dot(self.x.T,delta) # devide by class
+        self.d_b = delta.sum(axis=0)
         return self.d_x
 
     def zero_grad(self):
@@ -332,33 +332,28 @@ class Layer():
         updating layer weight
         """
         # Average gradient by batch size.
-        self.d_w /= num_batches
-        self.d_b /= num_batches
 
         #print("d_b:", np.sum(self.d_b))
         #print("pre_d_w:", np.sum(self.pre_d_w))
         #print("pre_d_b:", np.sum(self.pre_d_b))
 
         # TODO: put before or after gradient batch averaging
-        self.d_w += self.w * l2_penalty
+        self.d_w -= self.w * l2_penalty
 
         if (momentum) : 
+
             weight_change_w = self.d_w + momentum_gamma * self.pre_d_w
             weight_change_b = self.d_b + momentum_gamma * self.pre_d_b
-            self.w -= lr * weight_change_w
-            self.b -= lr * weight_change_b
-
-            # self.w -= lr * ((1 - momentum_gamma) * self.d_w + momentum_gamma * self.pre_d_w)
-            # self.b -= lr * ((1 - momentum_gamma) * self.d_b + momentum_gamma * self.pre_d_b)
-
-            # self.w += lr * (self.d_w*(momentum_gamma) / 175 + (1-momentum_gamma) * self.pre_d_w) 
-            # self.b += lr * (self.d_b*(momentum_gamma) / 175 + (1-momentum_gamma) * self.pre_d_b) 
+            
+            self.w += lr * weight_change_w
+            self.b += lr * weight_change_b
             
             self.pre_d_w = weight_change_w
             self.pre_d_b = weight_change_b
+
         else : 
-            self.w -= lr * self.d_w 
-            self.b -= lr * self.d_b 
+            self.w += lr * self.d_w 
+            self.b += lr * self.d_b 
 
         self.zero_grad()
 
@@ -369,7 +364,6 @@ class Layer():
         else :     
             self.w = self.w_best
             self.b = self.b_best 
-
 
 
 class Neuralnetwork():
@@ -428,6 +422,11 @@ class Neuralnetwork():
 
         # Compute cross entropy loss
         loss = self.loss(self.y, targets)
+
+        if self.l2_penalty :
+            for layer in self.layers:
+                loss += 0.5*self.l2_penalty*np.sum(layer.w**2)
+
         return self.y, loss
 
     def loss(self, logits, targets):
@@ -440,6 +439,12 @@ class Neuralnetwork():
         y_true = np.argmax(targets, axis=1)# decode
         ce = np.log(logits[range(len(logits)), y_true]+epsilon)
         # Normalize loss by batch size and num classes
+
+        if self.l2_penalty : 
+            for layer in self.layers:
+                loss += 0.5 * self.l2_penalty * np.sum(layer.w**2)
+
+
         return -np.sum(ce) / scale_size / self.output_size
 
 
@@ -449,7 +454,7 @@ class Neuralnetwork():
         Call backward methods of individual layers.
         '''
         self.num_batches += 1
-        delta = -(self.targets - self.y)  
+        delta = (self.targets - self.y) / self.output_size 
         for layer in self.layers[::-1]:
             delta = layer.backward(delta) #update delta
 
@@ -516,72 +521,73 @@ def split_data(x, y):
     return x[t_l], y[t_l], x[val_l], y[val_l]
 
 
-def train(model, x_train, y_train, x_valid, y_valid, config, patience=5):
-    """
-    Train your model here.
-    Implement batch SGD to train the model.
-    Implement Early Stopping.
-    Use config to set parameters for training like learning rate, momentum, etc.
-    """
+
+def train(model, x_train, y_train, x_valid, y_valid, config):
     epochs = config['epochs']
     batch_size = config['batch_size']
     momentum =    config['momentum']
     momentum_gamma = config['momentum_gamma']
     L2_penalty = config['momentum_gamma']
-
+    patience = config['early_stop_epoch']
 
     train_loss_record = []
     train_accuracy_record = []
     holdout_loss_record = []
     holdout_accuracy_record = []
+    
+    min_val_Loss = float('inf')
+    epoch_stop = 0
 
     # How many times the validation loss has gone up in a row.
     cur_loss_up_sequence = 0
 
     for epoch in range(epochs):
+        epoch_stop = epoch
         batch_loss = []
         batch_accuracy = []
         for x, y in generate_minibatches(x_train, y_train, batch_size):
             # Forward Pass
-            batch_loss.append(model.forward(x, y)[1]) 
+            train_y, loss = model.forward(x, y)
+            batch_loss.append(loss) 
             # Backward Pass
             model.backward()
-
-            # Calculate the accuracy of the batch.
-            batch_accuracy.append(model.accuracy())
+            model.updateweight() # update weight for each layer.
+            batch_accuracy.append(model.accuracy(x,y))
         
-        # Update the weights once per epoch.
-        model.updateweight() # update weight for each layer.\
-    
-        # Zero out the weights.
-        model.zero_grad()
-
-        train_loss = model.forward(x_train, y)[1]
-        train_accuracy = model.accuracy()
+        train_loss = np.mean(np.array(batch_loss))
+        train_accuracy = np.mean(np.array(batch_accuracy))
         holdout_loss = model.forward(x_valid, y_valid)[1]
-        holdout_accuracy = model.accuracy()
-
-        train_loss_record.append(train_loss)
-        train_accuracy_record.append(train_accuracy)
+        holdout_accuracy = model.accuracy(x_valid, y_valid)
         holdout_loss_record.append(holdout_loss)
         holdout_accuracy_record.append(holdout_accuracy)
 
         print(f' epoch: {epoch + 1}, train accuracy: {train_accuracy:.4f}, train_loss_norm:{train_loss:.4f}, '\
             f'valid_acc: {holdout_accuracy:.4f}, valid_loss_norm: {holdout_loss:.4f}')   
-
+                
+        
         # Save the best weights according to test set.
-        if holdout_loss > holdout_loss_record[:-2]:
+        if holdout_loss > min_val_Loss:
             cur_loss_up_sequence += 1
+            print("patience cnt",cur_loss_up_sequence)
 
             if cur_loss_up_sequence >= patience:
-                model.save_load_weight(save=False)
+                print("earlystop")
                 break
         else:
+            min_val_Loss = holdout_loss
             cur_loss_up_sequence = 0
             # Save the best weights.
             model.save_load_weight(save=True)
+    
+    return epoch_stop, train_loss_record, train_accuracy_record, holdout_loss_record, holdout_accuracy_record
 
-    return train_accuracy_record
+
+
+
+
+
+
+
 
 
 def test(model, X_test, y_test):
