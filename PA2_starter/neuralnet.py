@@ -556,6 +556,8 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
         
         train_loss = np.mean(np.array(batch_loss))
         train_accuracy = np.mean(np.array(batch_accuracy))
+        train_loss_record.append(train_loss)
+        train_accuracy_record.append(train_accuracy)
         holdout_loss = model.forward(x_valid, y_valid)[1]
         holdout_accuracy = model.accuracy(x_valid, y_valid)
         holdout_loss_record.append(holdout_loss)
