@@ -527,7 +527,7 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
     batch_size = config['batch_size']
     momentum =    config['momentum']
     momentum_gamma = config['momentum_gamma']
-    L2_penalty = config['momentum_gamma']
+    L2_penalty = config['L2_penalty']
     patience = config['early_stop_epoch']
 
     train_loss_record = []
