@@ -319,7 +319,7 @@ class Layer():
         self.d_x = np.dot(delta,self.w.T)
         # self.d_w += np.dot(self.x.T,delta) / size
         # self.d_b += delta.mean(axis=0)
-        self.d_w = np.dot(self.x.T,delta) # devide by class
+        self.d_w = np.dot(self.x.T,delta) # divide by class
         self.d_b = delta.sum(axis=0)
         return self.d_x
 
@@ -345,15 +345,15 @@ class Layer():
             weight_change_w = self.d_w + momentum_gamma * self.pre_d_w
             weight_change_b = self.d_b + momentum_gamma * self.pre_d_b
             
-            self.w += lr * weight_change_w
-            self.b += lr * weight_change_b
+            self.w -= lr * weight_change_w
+            self.b -= lr * weight_change_b
             
             self.pre_d_w = weight_change_w
             self.pre_d_b = weight_change_b
 
         else : 
-            self.w += lr * self.d_w 
-            self.b += lr * self.d_b 
+            self.w -= lr * self.d_w 
+            self.b -= lr * self.d_b 
 
         self.zero_grad()
 
@@ -454,7 +454,7 @@ class Neuralnetwork():
         Call backward methods of individual layers.
         '''
         self.num_batches += 1
-        delta = (self.targets - self.y) / self.output_size 
+        delta = -(self.targets - self.y) / self.output_size 
         for layer in self.layers[::-1]:
             delta = layer.backward(delta) #update delta
 
@@ -579,7 +579,7 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
             cur_loss_up_sequence = 0
             # Save the best weights.
             model.save_load_weight(save=True)
-            
+
         last_val_Loss = holdout_loss
         
     
