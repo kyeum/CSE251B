@@ -572,7 +572,7 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
             cur_loss_up_sequence += 1
             print("Valid loss go up!")
             print(f"Current patience count: {cur_loss_up_sequence}")
-
+            
             if cur_loss_up_sequence >= patience:
                 print("Earlystop!")
                 break
@@ -580,7 +580,8 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
             print("Valid loss going down!")
             cur_loss_up_sequence = 0
             # Save the best weights.
-            model.save_load_weight(save=True)
+            
+        model.save_load_weight(save=True)
 
         last_val_Loss = holdout_loss
         
