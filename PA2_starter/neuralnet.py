@@ -308,18 +308,15 @@ class Layer():
         self.a = np.dot(self.x,self.w) + self.b
         return self.a
 
-    def backward(self, delta):
+    def backward(self, delta, l2_penalty):
         """
         TODO: Write the code for backward pass. This takes in gradient from its next layer as input,
         computes gradient for its weights and the delta to pass to its previous layers.
         Return self.dx
         """
         size = self.x.shape[0]
-        # print("size:", size)
         self.d_x = np.dot(delta,self.w.T)
-        # self.d_w += np.dot(self.x.T,delta) / size
-        # self.d_b += delta.mean(axis=0)
-        self.d_w = np.dot(self.x.T,delta) # divide by class
+        self.d_w = np.dot(self.x.T,delta) 
         self.d_b = delta.sum(axis=0)
         return self.d_x
 
@@ -332,10 +329,6 @@ class Layer():
         updating layer weight
         """
         # Average gradient by batch size.
-
-        #print("d_b:", np.sum(self.d_b))
-        #print("pre_d_w:", np.sum(self.pre_d_w))
-        #print("pre_d_b:", np.sum(self.pre_d_b))
 
         # TODO: put before or after gradient batch averaging
         self.d_w -= self.w * l2_penalty
@@ -425,7 +418,8 @@ class Neuralnetwork():
 
         if self.l2_penalty :
             for layer in self.layers:
-                loss += 0.5*self.l2_penalty*np.sum(layer.w**2)
+                if isinstance(layer, Layer):
+                    loss += (np.sum(layer.w ** 2)) * self.l2_penalty / 2.
 
         return self.y, loss
 
@@ -439,12 +433,6 @@ class Neuralnetwork():
         y_true = np.argmax(targets, axis=1)# decode
         ce = np.log(logits[range(len(logits)), y_true]+epsilon)
         # Normalize loss by batch size and num classes
-
-        if self.l2_penalty : 
-            for layer in self.layers:
-                loss += 0.5 * self.l2_penalty * np.sum(layer.w**2)
-
-
         return -np.sum(ce) / scale_size / self.output_size
 
 
@@ -456,7 +444,11 @@ class Neuralnetwork():
         self.num_batches += 1
         delta = -(self.targets - self.y) / self.output_size 
         for layer in self.layers[::-1]:
-            delta = layer.backward(delta) #update delta
+            if isinstance(layer, Layer):
+                delta = layer.backward(delta,self.l2_penalty) #update delta
+            else : 
+                delta = layer.backward(delta) #update delta
+
 
     def zero_grad(self):
         self.num_batches = 0.0
