@@ -42,7 +42,7 @@ def normalize_data(inp):
             Transformed dataset with mean 0 and stdev 1
             Computed statistics (mean and stdev) for the dataset to undo z-scoring.
     """
-    print("inp:", inp.shape)
+    # print("inp:", inp.shape)
     mu = np.mean(inp, axis=(0,1,2)) # calculate mean for each feature col
     sigma = np.std(inp, axis=(0,1,2)) # calculate stddev for each feature col
     X_norm = (inp - mu) / sigma
@@ -535,7 +535,7 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
     holdout_loss_record = []
     holdout_accuracy_record = []
     
-    min_val_Loss = float('inf')
+    last_val_Loss = float('inf')
     epoch_stop = 0
 
     # How many times the validation loss has gone up in a row.
@@ -561,23 +561,27 @@ def train(model, x_train, y_train, x_valid, y_valid, config):
         holdout_loss_record.append(holdout_loss)
         holdout_accuracy_record.append(holdout_accuracy)
 
-        print(f' epoch: {epoch + 1}, train accuracy: {train_accuracy:.4f}, train_loss_norm:{train_loss:.4f}, '\
+        print(f'Epoch: {epoch + 1}, train accuracy: {train_accuracy:.4f}, train_loss_norm:{train_loss:.4f}, '\
             f'valid_acc: {holdout_accuracy:.4f}, valid_loss_norm: {holdout_loss:.4f}')   
                 
         
         # Save the best weights according to test set.
-        if holdout_loss > min_val_Loss:
+        if holdout_loss > last_val_Loss:
             cur_loss_up_sequence += 1
-            print("patience cnt",cur_loss_up_sequence)
+            print("Valid loss go up!")
+            print(f"Current patience count: {cur_loss_up_sequence}")
 
             if cur_loss_up_sequence >= patience:
-                print("earlystop")
+                print("Earlystop!")
                 break
         else:
-            min_val_Loss = holdout_loss
+            print("Valid loss going down!")
             cur_loss_up_sequence = 0
             # Save the best weights.
             model.save_load_weight(save=True)
+            
+        last_val_Loss = holdout_loss
+        
     
     return epoch_stop, train_loss_record, train_accuracy_record, holdout_loss_record, holdout_accuracy_record
 
