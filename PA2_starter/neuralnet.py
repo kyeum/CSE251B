@@ -331,7 +331,7 @@ class Layer():
         # Average gradient by batch size.
 
         # TODO: put before or after gradient batch averaging
-        self.d_w -= self.w * l2_penalty
+        self.d_w += self.w * l2_penalty
 
         if (momentum) : 
 
@@ -419,7 +419,7 @@ class Neuralnetwork():
         if self.l2_penalty :
             for layer in self.layers:
                 if isinstance(layer, Layer):
-                    loss += (np.sum(layer.w ** 2)) * self.l2_penalty / 2.
+                    loss += (np.mean(layer.w ** 2)) * self.l2_penalty / 2.
 
         return self.y, loss
 
