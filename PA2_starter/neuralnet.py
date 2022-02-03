@@ -255,6 +255,7 @@ class Activation():
         TODO: Compute the gradient for ReLU here.
         dReLU(z) = 1 if z > 0 else 0
         """
+        
         return np.where(self.x > 0, 1, 0)
 
     def grad_leakyReLU(self):
@@ -278,8 +279,8 @@ class Layer():
         Define the architecture and create placeholder.
         """
         np.random.seed(42)
-        self.w = np.random.randn(in_units, out_units) #input layer size  output layer size     # >>EY : add randomize 
-        self.b = np.random.randn(1, out_units) # Create a placeholder for Bias        # >>EY : add randomize 
+        self.w = 1*np.random.randn(in_units, out_units) #input layer size  output layer size     # >>EY : add randomize 
+        self.b = 1*np.random.randn(1, out_units) # Create a placeholder for Bias        # >>EY : add randomize 
 
         self.x = None    # Save the input to forward in this
         self.a = None    # Save the output of forward pass in this (without activation)
@@ -316,7 +317,7 @@ class Layer():
         """
         size = self.x.shape[0]
         self.d_x = np.dot(delta,self.w.T)
-        self.d_w = np.dot(self.x.T,delta) 
+        self.d_w = np.dot(self.x.T,delta) + self.w * l2_penalty
         self.d_b = delta.sum(axis=0)
         return self.d_x
 
@@ -331,7 +332,7 @@ class Layer():
         # Average gradient by batch size.
 
         # TODO: put before or after gradient batch averaging
-        self.d_w += self.w * l2_penalty
+        #self.d_w += self.w * l2_penalty
 
         if (momentum) : 
 
@@ -402,6 +403,8 @@ class Neuralnetwork():
         for layer in self.layers:
             if isinstance(layer, Layer):
                 layer.w *= scale_factor
+                layer.b *= scale_factor
+
 
     def forward(self, x, targets=None):
         """
