@@ -397,6 +397,11 @@ class Neuralnetwork():
         Make NeuralNetwork callable.
         """
         return self.forward(x, targets)
+        
+    def scale_weights(self, scale_factor):
+        for layer in self.layers:
+            if isinstance(layer, Layer):
+                layer.w *= scale_factor
 
     def forward(self, x, targets=None):
         """
