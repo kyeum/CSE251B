@@ -13,6 +13,7 @@
 ################################################################################
 
 import neuralnet
+# import neuralnet_works_FC as neuralnet
 import numpy as np
 import yaml
 import pickle
@@ -109,6 +110,7 @@ def sanity_network(data, default_config):
 
     # Random input for our network.
     random_image = np.random.randn(1, 784)
+    print("Random input:", np.sum(random_image))
 
     # Initialize the network using the default configuration
     nnet = neuralnet.Neuralnetwork(default_config)
@@ -125,9 +127,19 @@ def sanity_network(data, default_config):
             layer_no += 1
             error_x   = np.sum(np.abs(data['nnet'].layers[layer_idx].x   - layer.x))
             error_w   = np.sum(np.abs(data['nnet'].layers[layer_idx].w   - layer.w))
+            
             error_b   = np.sum(np.abs(data['nnet'].layers[layer_idx].b   - layer.b))
             error_d_w = np.sum(np.abs(data['nnet'].layers[layer_idx].d_w - layer.d_w))
+
+            print(np.sum(data['nnet'].layers[layer_idx].d_w))
+            print(np.sum(layer.d_w))
+            print("error_dw:", error_d_w)
+            
             error_d_b = np.sum(np.abs(data['nnet'].layers[layer_idx].d_b - layer.d_b))
+            
+            print(np.sum(data['nnet'].layers[layer_idx].d_b))
+            print(np.sum(layer.d_b))
+            print("error_db:", error_d_b)
 
             check_error(error_x,   f"Layer{layer_no}: Input")
             check_error(error_w,   f"Layer{layer_no}: Weights")
