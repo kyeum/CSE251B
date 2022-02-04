@@ -14,7 +14,7 @@ import yaml
 import numpy as np
 import pickle
 import random
-
+import math
 
 
 def load_config(path):
@@ -293,11 +293,20 @@ class Layer():
         self.pre_d_w = np.zeros_like(self.w)
         self.pre_d_b = np.zeros_like(self.b)
 
+        self.in_units = in_units
+        self.out_units = out_units
+
     def __call__(self, x):
         """
         Make layer callable.
         """
         return self.forward(x)
+
+    def kaiming_init(self):
+        scale = 1/max(1., (self.in_units+self.out_units)/2.)
+        limit = math.sqrt(3.0 * scale)
+        self.w = np.random.uniform(-limit, limit, size=(self.in_units,self.out_units))
+
 
     def forward(self, x):
         """
@@ -398,13 +407,17 @@ class Neuralnetwork():
         Make NeuralNetwork callable.
         """
         return self.forward(x, targets)
-        
+
+    def kaiming_init(self):
+        for layer in self.layers:
+            if isinstance(layer, Layer):
+                layer.kaiming_init()
+
     def scale_weights(self, scale_factor):
         for layer in self.layers:
             if isinstance(layer, Layer):
                 layer.w *= scale_factor
                 layer.b *= scale_factor
-
 
     def forward(self, x, targets=None):
         """
