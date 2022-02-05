@@ -1,6 +1,6 @@
-# CSE251B PA1
+# CSE251B PA2
 ## PA2 Organization and Instruction
-We used jupyter notebooks for the main body for each part(b),(c),(d),(e),(f).
+We used jupyter notebooks for the main body for each part (b),(c),(d),(e),(f).
 
 ### 3 Main Notebooks
 1. Qb was implemented in `PA2_(b)`
@@ -12,9 +12,9 @@ We used jupyter notebooks for the main body for each part(b),(c),(d),(e),(f).
 To run, simply open the jupyter notebooks with jupyter notebook and press `Run All`.
 
 ### Other files
-Misc function files: neuralnet, checker.py,  
+Misc function files: neuralnet, checker.py.
 
 ### Plots
-The generated plots for the report will be in the directory `plots/`
+The generated plots for the report will be in the directory `plots/`.
 
 
