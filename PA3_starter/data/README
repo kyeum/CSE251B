@@ -1,0 +1,62 @@
+TAS500 Dataset v1.1
+-------------------
+
+This README gives a brief overview of the folder structure and the data format used in the TAS500 dataset.
+
+Folder structure
+----------------
+
+The dataset includes the following directories:
+
+test - The input images of the test split of the dataset (15%), the groundtruth is not publicly available and will be used for evaluation on a public leaderboard in the upcoming months.
+train - The input images of the training split of the dataset (70%).
+train_labels - The groundtruth segmentation maps in color for the training split of the dataset. See further below in the README for the class definitions and colors.
+train_labels_ids - The groundtruth segmentation map of the training split as a grayscale image with the defined class IDs. See further below in the README for the class IDs.
+val - The input images of the validation split of the dataset (15%).
+val_labels - The groundtruth segmentation maps in color for the validation split of the dataset. See further below in the README for the class definitions and colors.
+val_labels_ids - The groundtruth segmentation map of the validation split as a grayscale image with the defined class IDs. See further below in the README for the class IDs.
+
+Semantic Class Overview
+-----------------------
+
+Class ID |       Name       |  RGB Color  | Description
+______________________________________________________________________________________________________________________________________________________________________
+    0    |      asphalt     | 192,192,192 | Drivable surfaces that are made of asphalt: e.g. asphalt roads. This also includes concrete surfaces. 
+    1    |      gravel      | 105,105,105 | Drivable surfaces that are made of gravel (small stones): e.g. gravel roads.
+    2    |       soil       | 160, 82, 45 | Surfaces that are made of soil: e.g. dirt roads or dirt patches.
+    3    |       sand       | 244,164, 96 | Surfaces that are made of sand. Sand is sometimes found on the roadside.
+    4    |       bush       |  60,179,113 | A bush has several main stems growing from the ground level rather than from one trunk.
+    5    |      forest      |  34,139, 34 | Multiple trees or bushes, that are part of a forest, thicket or strip of woods.
+    6    |     low grass    | 154,205, 50 | Grass with a height smaller than about 20cm.
+    7    |     high grass   |   0,128,  0 | Grass with a height taller than 20 cm.
+    8    | misc. vegetation |   0,100,  0 | Vegetation in the far distance (>300 m) that makes up the scenery.
+    9    |     tree crown   |   0,250,154 | The total of an individual plant's above ground parts excluding the tree trunk.
+   10    |     tree trunk   | 139, 69, 19 | The stem and main wooden axis of a tree.
+   11    |     building     |   1, 51, 73 | Larger man-made structures (house, bus stop, skyscraper, transmission towers and construction cranes). 
+   12    |      fence       | 190,153,153 | A fence is labeled as a surface including any transparent holes that are smaller than 750px.
+   13    |       wall       |   0,132,111 | Individual standing wall. Not part of a building.
+   14    |       car        |   0,  0,142 | Car, jeep, SUV, van with continuous body shape, no other trailers.
+   15    |       bus        |   0, 60,100 | Bus for 15+ persons, public transport or long distance transport.
+   16    |       sky        | 135,206,250 | Open sky, without leaves of trees or any other occlusions.
+   17    |   misc. object   | 128,  0,128 | Man-made objects and structures that are typically non-drivable.
+   18    |       pole       | 153,153,153 | Small mainly vertically oriented pole: e.g. sign pole or traffic light poles.
+   19    |    traffic sign  | 255,255,  0 | Sign installed for information of the driver in an everyday traffic scene.
+   20    |     person       | 220, 20, 60 | A human or a large crowd of humans.
+   21    |     animal       | 255,182,193 | All kinds of animals: e.g. cats, dogs, birds, cows, etc.
+   22    |   ego vehicle    | 220,220,220 | Visible parts of the ego vehicle (hood, windshield wiper, etc.).
+   255   |     undefined    |   0,  0,  0 | All unlabeled pixels are defined with the label undefined. In most cases this includes overexposed areas of the image.
+
+Changelog
+---------
+April 21, 2021: 
+    - release of TAS500 Dataset v1.1
+    - added 44 new images to the dataset (new total of 640 input images/540 annotations available to the public)
+    - all images are given a fixed height of 620px
+    - the TAS500v1.1 is now part of the Outdoor Semantic Segmentation Challenge @ DAGM GCPR 2021, for more info follow the link below
+
+Contact
+-------
+Peter Mortimer
+peter.mortimer@unibw.de
+https://www.mucar3.de/icpr2020-tas500/
+https://unstructured-scene-understanding.com/challenge.html
