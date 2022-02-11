@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 
 def iou(pred, target, n_classes = 10):
@@ -34,3 +35,12 @@ def pixel_acc(pred, target):
       total+=1
     
     return total/correct
+
+
+def pixel_acc_ey(pred, target):
+    #DONE: TODO complete this function, make sure you don't calculate the accuracy for undefined class ("9")
+
+  res = pred == target
+  res_undef = torch.mean(res[target != 9].to(torch.float)) 
+
+  return float(res_undef)
