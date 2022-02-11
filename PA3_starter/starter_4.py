@@ -9,10 +9,18 @@ import torch
 import gc
 import copy
 import matplotlib.pyplot as plt
+from torch.utilss.data import ConcatDataset as concat
+
 
 
 # TODO: Some missing values are represented by '__'. You need to fill these up.
-train_dataset = TASDataset('tas500v1.1') 
+train_dataset_original = TASDataset('tas500v1.1') 
+train_dataset_crop = TASDataset('tas500v1.1', transform_mode = 1) 
+train_dataset_rotate = TASDataset('tas500v1.1',transform_mode = 2) 
+train_dataset_flip = TASDataset('tas500v1.1',transform_mode = 3) 
+
+train_dataset = concat([train_dataset_original,train_dataset_crop,train_dataset_rotate,train_dataset_flip])
+
 val_dataset = TASDataset('tas500v1.1', eval=True, mode='val')
 test_dataset = TASDataset('tas500v1.1', eval=True, mode='test')
 
@@ -25,9 +33,17 @@ def init_weights(m):
     if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
         torch.nn.init.xavier_uniform_(m.weight.data)
         torch.nn.init.normal_(m.bias.data) #xavier not applicable for biases   
+#TODOO!!  weight normalization -> add to normalized data to crossentrophyloss
+
+
+
+
+criterion = nn.CrossEntropyLoss()# Choose an appropriate loss function from https://pytorch.org/docs/stable/_modules/torch/nn/modules/loss.html
+
+
+
 
 epochs = 20       
-criterion = nn.CrossEntropyLoss()# Choose an appropriate loss function from https://pytorch.org/docs/stable/_modules/torch/nn/modules/loss.html
 n_class = 10
 fcn_model = FCN(n_class=n_class)
 fcn_model.apply(init_weights)
@@ -43,8 +59,8 @@ else :
 
 
 
-def (epochs, learning_rate):
-    optimizer = optim.Adam(fcn_model.parameters(), lr = learning_rate) # choose an optimizer
+def train():
+    optimizer = optim.Adam(fcn_model.parameters(), lr = 0.0001) # choose an optimizer
 
     best_iou_score = 0.0
     train_loss_record = []
