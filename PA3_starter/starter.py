@@ -138,7 +138,7 @@ def test():
 
             # both inputs and labels have to reside in the same device as the model's
             input = input.to(device) #transfer the input to the same device as the model's
-            label = label.to(device) #transfer the labels to the same device as the model's
+            label = input.type(torch.LongTensor).to(device) #transfer the labels to the same device as the model's
 
             output = fcn_model(input)
 
