@@ -115,8 +115,12 @@ class TASDataset(Dataset):
 
         elif self.transform_mode == 3 : #toDO
             image = np.fliplr(image)
+            image = np.flipud(image)
+            mask_image = np.fliplr(mask_image)
+            mask_image = np.flipud(mask_image)
 
         else: 
+            #original data
             image = np.asarray(PIL.Image.open(self.paths[idx][0]).resize((self.width, self.height)))
             mask_image = np.asarray(PIL.Image.open(self.paths[idx][1]).resize((self.width, self.height), PIL.Image.NEAREST))
             mask =  rgb2vals(mask_image, self.color2class)
