@@ -104,5 +104,10 @@ class TASDataset(Dataset):
 
         if self.transform:
             image = self.transform(image).float()
+            
+        if self.mode == 'test':
+            return image, mask, np.asarray(PIL.Image.open(self.paths[idx][0]).resize((self.width, self.height)))
 
         return image, mask
+
+

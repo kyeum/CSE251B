@@ -187,12 +187,60 @@ def test():
     print(f"Loss :is {np.mean(losses)}")
     print(f"IoU is {np.mean(mean_iou_scores)}")
     print(f"Pixel is {np.mean(accuracy)}")
+    
+    visualization()
+    
     return 0
 
 
+   
+def visualization(): # visualization of the segmented output for the first image in the tes set overlaid on the image. colorcoding mapping in the dataloader.py
+    class2color = {}
+    for k, v in test_dataset.color2class.items():
+        class2color[v] = k
 
+    fcn_model = torch.load('latest_model')
+    fcn_model.eval()  # Don't forget to put in eval mode !
+    ts = time.time()
+    with torch.no_grad(): # we don't need to calculate the gradient in the validation/testing
 
+        for iter, (input, label, real_image) in enumerate(plot_loader):
 
+            # both inputs and labels have to reside in the same device as the model's
+            input = input.to(device) #transfer the input to the same device as the model's
+            label = label.type(torch.LongTensor).to(device) #transfer the labels to the same device as the model's
+
+            output = fcn_model(input)
+            pred = torch.argmax(output, dim=1) 
+            
+        
+            imgs = []
+            for rows in pred[0]:
+                for col in rows:
+                    col = int(col)
+                    imgs.append(class2color[col])
+            imgs = np.asarray(imgs).reshape(pred.shape[1], pred.shape[2], 3)
+            outputimg = PIL.Image.fromarray(np.array(imgs, dtype=np.uint8))
+            plt.axis('off')
+            plt.imshow(real_image[0])
+            plt.imshow(outputimg, alpha=0.8)
+            
+            plt.title('Output Image')
+            plt.show()
+
+            imgs = []
+            for rows in label[0]:
+                for col in rows:
+                    col = int(col)
+                    imgs.append(class2color[col])
+            imgs = np.asarray(imgs).reshape(pred.shape[1], pred.shape[2], 3)
+            outputimg = PIL.Image.fromarray(np.array(imgs, dtype=np.uint8))
+            plt.axis('off')
+            plt.imshow(real_image[0])
+            plt.imshow(outputimg, alpha=0.8)
+            
+            plt.title('Label Image')
+            plt.show()
 
 
 if __name__ == "__main__":
