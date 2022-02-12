@@ -43,7 +43,7 @@ else :
 
 
 
-def (epochs, learning_rate):
+def train(epochs, learning_rate):
     optimizer = optim.Adam(fcn_model.parameters(), lr = learning_rate) # choose an optimizer
 
     best_iou_score = 0.0
@@ -110,9 +110,9 @@ def val(epoch):
             loss = criterion(output,label) #calculate the loss
             losses.append(loss.item()) #call .item() to get the value from a tensor. The tensor can reside in gpu but item() will still work 
 
-            pred = torch.argmax(output, axis = 1) # Make sure to include an argmax to get the prediction from the outputs of your model
+            pred = torch.argmax(output, dim = 1) # Make sure to include an argmax to get the prediction from the outputs of your model
 
-            mean_iou_scores.append(np.nanmean(iou(pred, label, n_class)))  # Complete this function in the util, notice the use of np.nanmean() here
+            mean_iou_scores.append(np.nanmean(iou_ey(pred, label, n_class)))  # Complete this function in the util, notice the use of np.nanmean() here
         
             accuracy.append(pixel_acc_ey(pred, label)) # Complete this function in the util
 
@@ -146,9 +146,9 @@ def test():
             loss = criterion(output,label) #calculate the loss
             losses.append(loss.item()) #call .item() to get the value from a tensor. The tensor can reside in gpu but item() will still work 
 
-            pred = torch.argmax(output, axis = 1) # Make sure to include an argmax to get the prediction from the outputs of your model
+            pred = torch.argmax(output, dim = 1) # Make sure to include an argmax to get the prediction from the outputs of your model
 
-            mean_iou_scores.append(np.nanmean(iou(pred, label, n_class)))  # Complete this function in the util, notice the use of np.nanmean() here
+            mean_iou_scores.append(np.nanmean(iou_ey(pred, label, n_class)))  # Complete this function in the util, notice the use of np.nanmean() here
         
             accuracy.append(pixel_acc_ey(pred, label)) # Complete this function in the util
 
@@ -165,9 +165,9 @@ def test():
 
 
 if __name__ == "__main__":
-    val(0)  # show the accuracy before training
-    train()
-    test()
+    #val(0)  # show the accuracy before training
+    #train()
+    #test()
     
     # housekeeping
     gc.collect() 

@@ -38,6 +38,8 @@ def init_weights(m):
 
 
 
+
+
 criterion = nn.CrossEntropyLoss()# Choose an appropriate loss function from https://pytorch.org/docs/stable/_modules/torch/nn/modules/loss.html
 
 
