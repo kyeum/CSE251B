@@ -46,8 +46,9 @@ def iou_ey(pred, target, n_classes = 10):
   for cls in range(n_classes-1):  # last class is ignored
     pred_inds = pred == cls
     target_inds = target == cls
-    intersection = torch.sum(np.logical_and(pred_inds,target_inds)) #DONE: complete this, number of agreements, TP
-    union = torch.sum(np.logical_or(pred_inds,target_inds)) #DONE: complete this, total TP + FP + FN
+    intersection = torch.sum(pred_inds & target_inds) #DONE: complete this, number of agreements, TP
+    union = torch.sum(pred_inds | target_inds) #DONE: complete this, total TP + FP + FN    
+    
     if union == 0:
       ious.append(float('nan'))  # If there is no ground truth, do not include in evaluation
     else:

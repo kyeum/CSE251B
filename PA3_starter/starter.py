@@ -36,10 +36,15 @@ fcn_model.apply(init_weights)
 gpu_status = torch.cuda.is_available()
 gpu_status
 
+# +
 if gpu_status : 
     device = torch.device('cuda') # determine which device to use (gpu or cpu)
+    print("status : GPU")
 else : 
     device = torch.device('cpu')
+    
+fcn_model.to(device)
+# -
 
 
 
@@ -165,10 +170,12 @@ def test():
 
 
 if __name__ == "__main__":
-    #val(0)  # show the accuracy before training
-    #train()
+    val(0)  # show the accuracy before training
+    train_record, valid_record = train(epochs, 0.0001)
     #test()
     
     # housekeeping
     gc.collect() 
     torch.cuda.empty_cache()
+
+
