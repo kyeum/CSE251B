@@ -50,7 +50,7 @@ fcn_model.to(device)
 
 
 
-def train(epochs, learning_rate, save_fp="latest_model_3"):
+def train(fcn_model,epochs, learning_rate, save_fp="latest_model_3"):
     optimizer = optim.Adam(fcn_model.parameters(), lr = learning_rate) # choose an optimizer
 
     best_iou_score = 0.0
