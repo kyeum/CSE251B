@@ -98,7 +98,7 @@ def train(fcn_model, epochs, learning_rate, save_fp="latest_model_4"):
         train_loss_record.append(np.mean(train_loss))
 
 
-        current_miou_score = val(fcn_model, epoch)
+        current_miou_score, _ = val(fcn_model, epoch)
 
         if current_miou_score > best_iou_score:
             best_iou_score = current_miou_score
