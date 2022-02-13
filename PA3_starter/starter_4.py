@@ -14,17 +14,10 @@ from torch.utils.data import ConcatDataset as concat
 print("in starter_4")
 
 # TODO: Some missing values are represented by '__'. You need to fill these up.
-train_dataset_original = TASDataset('tas500v1.1') 
-train_dataset_crop = TASDataset('tas500v1.1')
-train_dataset_crop.add_center_crop()
-train_dataset_rotate = TASDataset('tas500v1.1') 
-train_dataset_rotate.add_rand_rot()
-train_dataset_flip = TASDataset('tas500v1.1') 
-train_dataset_flip.add_horz_flip()
-train_dataset = concat([train_dataset_original,
-                        train_dataset_crop,
-                        train_dataset_rotate,
-                        train_dataset_flip])
+train_dataset = TASDataset('tas500v1.1') 
+train_dataset.add_rand_crop()
+train_dataset.add_rand_rot()
+train_dataset.add_horz_flip()
 
 val_dataset = TASDataset('tas500v1.1', eval_mode=True, mode='val')
 test_dataset = TASDataset('tas500v1.1', eval_mode=True, mode='test')
@@ -98,7 +91,8 @@ def train(fcn_model, epochs, learning_rate, save_fp="latest_model_4"):
         train_loss_record.append(np.mean(train_loss))
 
 
-        current_miou_score, _ = val(fcn_model, epoch)
+        current_miou_score,valid_loss = val(fcn_model,epoch)
+        valid_loss_record.append(valid_loss)
 
         if current_miou_score > best_iou_score:
             best_iou_score = current_miou_score

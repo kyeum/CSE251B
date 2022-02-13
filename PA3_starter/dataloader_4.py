@@ -93,9 +93,8 @@ class TASDataset(Dataset):
             
         elif self.mode == 'test': # use last 50 images for test
             self.paths = self.paths[50:]
-    def add_center_crop(self):
-        self.cur_transforms.insert(1, transforms.CenterCrop((192, 384)))
-        self.cur_transforms.append(transforms.Resize((384, 768)))
+    def add_rand_crop(self):
+        self.cur_transforms.insert(1, transforms.RandomResizedCrop(size=(384, 768), scale=(0.08, 1.0), ratio=(0.75, 1.3333)))
         self.transform = transforms.Compose(self.cur_transforms)
     
     def add_rand_rot(self):
@@ -103,7 +102,7 @@ class TASDataset(Dataset):
         self.cur_transforms.append(transforms.Resize((384, 768)))
         self.transform = transforms.Compose(self.cur_transforms)
         
-    def add_horz_flip(self, p=1.0):
+    def add_horz_flip(self, p=0.5):
         self.cur_transforms.insert(1, transforms.RandomHorizontalFlip(p))
         self.cur_transforms.append(transforms.Resize((384, 768)))
         self.transform = transforms.Compose(self.cur_transforms)
