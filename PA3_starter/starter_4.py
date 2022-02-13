@@ -15,9 +15,9 @@ print("in starter_4")
 
 # TODO: Some missing values are represented by '__'. You need to fill these up.
 train_dataset = TASDataset('tas500v1.1') 
-train_dataset.add_rand_crop()
-train_dataset.add_rand_rot()
-train_dataset.add_horz_flip()
+# train_dataset.add_rand_crop()
+# train_dataset.add_rand_rot()
+# train_dataset.add_horz_flip()
 
 val_dataset = TASDataset('tas500v1.1', eval_mode=True, mode='val')
 test_dataset = TASDataset('tas500v1.1', eval_mode=True, mode='test')
