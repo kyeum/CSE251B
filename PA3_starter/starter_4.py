@@ -149,7 +149,7 @@ def test(fcn_model):
 
     with torch.no_grad(): # we don't need to calculate the gradient in the validation/testing
 
-        for i, (inputs, labels) in enumerate(test_loader):
+        for i, (inputs, labels, rawimg) in enumerate(test_loader):
 
             # both inputs and labels have to reside in the same device as the model's
             inputs = inputs.to(device) #transfer the input to the same device as the model's
