@@ -1,54 +1,153 @@
 import torch.nn as nn
+import torch
 from torchvision import models
 
    
-class FCN(nn.Module):
+class UNET(nn.Module):
 
     def __init__(self, n_class):
         super().__init__()
         self.n_class = n_class
-        self.conv1   = nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=1, dilation=1)
-        self.bnd1    = nn.BatchNorm2d(32)
-        self.conv2   = nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1, dilation=1)
-        self.bnd2    = nn.BatchNorm2d(64)
-        self.conv3   = nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1, dilation=1)
-        self.bnd3    = nn.BatchNorm2d(128)
-        self.conv4   = nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1, dilation=1)
-        self.bnd4    = nn.BatchNorm2d(256)
-        self.conv5   = nn.Conv2d(256, 512, kernel_size=3, stride=2, padding=1, dilation=1)
-        self.bnd5    = nn.BatchNorm2d(512)
-        self.relu    = nn.ReLU(inplace=True)
-        self.deconv1 = nn.ConvTranspose2d(512, 512, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
-        self.bn1     = nn.BatchNorm2d(512)
-        self.deconv2 = nn.ConvTranspose2d(512, 256, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
-        self.bn2     = nn.BatchNorm2d(256)
-        self.deconv3 = nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
-        self.bn3     = nn.BatchNorm2d(128)
-        self.deconv4 = nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
-        self.bn4     = nn.BatchNorm2d(64)
-        self.deconv5 = nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
-        self.bn5     = nn.BatchNorm2d(32)
-        self.classifier = nn.Conv2d(32, self.n_class, kernel_size=1)
-
-    def forward(self, x):
-
-        x1 = self.bnd1(self.relu(self.conv1(x)))
-        x2 = self.bnd2(self.relu(self.conv2(x1)))
-        x3 = self.bnd3(self.relu(self.conv3(x2)))
-        x4 = self.bnd4(self.relu(self.conv4(x3)))
-
-        out_encoder =  self.bnd5(self.relu(self.conv5(x4)))
-        # Complete the forward function for the rest of the encoder : Completed - ey
-
-
-        y1 = self.bn1(self.relu(self.deconv1(self.relu(out_encoder))))   
-        y2 = self.bn2(self.relu(self.deconv2(y1)))    
-        y3 = self.bn3(self.relu(self.deconv3(y2)))    
-        y4 = self.bn4(self.relu(self.deconv4(y3)))    
-        out_decoder = self.bn5(self.relu(self.deconv5(y4)))    
-
-        # Complete the forward function for the rest of the decoder
+        #1st
+        #repeated two 3x3 conv(unpadded)
+        #RELU
+        #2x2 max pool, with stride 2, doubled the number of feature channel
+        self.Maxpool = nn.MaxPool2d(kernel_size=2,stride=2) # maxpool 2x2 with stride 2 for downsampling
+ 
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(64, 64, kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True)
+        )              
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(64, 128, kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(128, 128, kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True)
+        )                
+        self.conv3 = nn.Sequential(
+            nn.Conv2d(128, 256, kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True)
+        )             
+        self.conv4 = nn.Sequential(
+            nn.Conv2d(256, 512, kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512, 512, kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(inplace=True)
+        )             
+        self.conv5 = nn.Sequential(
+            nn.Conv2d(512, 1024, kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(1024),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(1024, 1024, kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(1024),
+            nn.ReLU(inplace=True)
+        )     
         
-        score = self.classifier(out_decoder)                   
+        #2nd 
+        #up sampling
+        #2x2 conv - concat will be in forward
+        #
+        self.Up5 = nn.Sequential(
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(1024,512,kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(inplace=True)
+        )       
+        self.upconv5 = nn.Sequential(
+            nn.Conv2d(1024, 512, kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512, 512, kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(inplace=True)
+        )     
+        self.Up4 = nn.Sequential(
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(512,256,kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True)
+        )       
+        self.upconv4 = nn.Sequential(
+            nn.Conv2d(512, 256, kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True)
+        )   
+        self.Up3 = nn.Sequential(
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(256,128,kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True)
+        )       
+        self.upconv3 = nn.Sequential(
+            nn.Conv2d(256, 128, kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(128, 128, kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True)
+        )   
+        self.Up2 = nn.Sequential(
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(128,64,kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True)
+        )       
+        self.upconv2 = nn.Sequential(
+            nn.Conv2d(128, 64, kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(64, 64, kernel_size=3,stride=1,padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True)
+        )   
+        self.classifier = nn.Conv2d(64,n_class,kernel_size=1)
 
-        return score  # size=(N, n_class, x.H/1, x.W/1)
+    def forward(self, x):    
+        x1 = self.conv1(x)
+        
+        x2 = self.Maxpool(x1)
+        x2 = self.conv2(x2)      
+        
+        x3 = self.Maxpool(x2)
+        x3 = self.conv3(x3)
+        
+        x4 = self.Maxpool(x3)
+        x4 = self.conv4(x4)
+        
+        x5 = self.Maxpool(x4)
+        x5 = self.conv5(x5)
+
+        y1 = self.Up5(x5)
+        merge1 = torch.cat((x4,y1),dim=1)    # concat corresponding crop feature map from contracting path
+        y1 = self.upconv5(merge1)            # two 3x3 conv , . 
+        
+        y2 = self.Up4(y1)
+        merge2 = torch.cat((x3,y2),dim=1)
+        y2 = self.upconv4(merge2)
+        
+        y3 = self.Up3(y2)
+        merge3 = torch.cat((x2,y3),dim=1)
+        y3 = self.upconv3(merge3)
+        
+        y4 = self.Up2(y3)
+        merge4 = torch.cat((x1,y4),dim=1)
+        y4 = self.upconv2(merge4)
+        
+        score = self.classifier(y4)  # In total the network has 23 convolutional layers.                
+        return score 
+

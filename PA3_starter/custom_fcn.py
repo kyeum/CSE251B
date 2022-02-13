@@ -7,6 +7,7 @@ class FCN(nn.Module):
     def __init__(self, n_class):
         super().__init__()
         self.n_class = n_class
+        self.Maxpool = nn.MaxPool2d(kernel_size=2,stride=2) # maxpool 2x2 with stride 2 for downsampling
         self.conv1   = nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=1, dilation=1)
         self.bnd1    = nn.BatchNorm2d(32)
         self.conv2   = nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1, dilation=1)
@@ -33,18 +34,29 @@ class FCN(nn.Module):
     def forward(self, x):
 
         x1 = self.bnd1(self.relu(self.conv1(x)))
+        x1 = self.Maxpool(x1)
+        
         x2 = self.bnd2(self.relu(self.conv2(x1)))
+        x2 = self.Maxpool(x2)
+
         x3 = self.bnd3(self.relu(self.conv3(x2)))
+        x3 = self.Maxpool(x3)
+        
         x4 = self.bnd4(self.relu(self.conv4(x3)))
+        x4 = self.Maxpool(x4)
 
         out_encoder =  self.bnd5(self.relu(self.conv5(x4)))
         # Complete the forward function for the rest of the encoder : Completed - ey
 
 
         y1 = self.bn1(self.relu(self.deconv1(self.relu(out_encoder))))   
+        
         y2 = self.bn2(self.relu(self.deconv2(y1)))    
+        
         y3 = self.bn3(self.relu(self.deconv3(y2)))    
+        
         y4 = self.bn4(self.relu(self.deconv4(y3)))    
+        
         out_decoder = self.bn5(self.relu(self.deconv5(y4)))    
 
         # Complete the forward function for the rest of the decoder
@@ -52,3 +64,8 @@ class FCN(nn.Module):
         score = self.classifier(out_decoder)                   
 
         return score  # size=(N, n_class, x.H/1, x.W/1)
+
+class Recurrent(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        

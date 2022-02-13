@@ -66,16 +66,20 @@ def pixel_acc_ey(pred, target):
   return float(res_undef)
 
 
-def visualize(model_name):
+def visualize(model_name,test_loader):
     #TODO: load the best model and complete the rest of the function for testing
-    fcn_model = torch.load('latest_model')
+    fcn_model = torch.load(model_name)
     fcn_model.eval()
     inputimg = []
-
+    pred = []
     with torch.no_grad(): # we don't need to calculate the gradient in the validation/testing
         for iter, (input, label, orgin_img) in enumerate(test_loader):
             inputimg = orgin_img[0]
-    
+            input = input.to(device) #transfer the input to the same device as the model's
+            label = label.type(torch.LongTensor).to(device) #transfer the labels to the same device as the model's
+            output = fcn_model(input)
+            pred = torch.argmax(output, axis = 1) # Make sure to include an argmax to get the prediction from the outputs of your model
+
     class2color = {}
     for k, v in test_dataset.color2class.items():
         class2color[v] = k    
