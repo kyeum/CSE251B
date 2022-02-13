@@ -17,9 +17,9 @@ val_dataset = TASDataset('tas500v1.1', eval=True, mode='val')
 test_dataset = TASDataset('tas500v1.1', eval=True, mode='test')
 
 
-train_loader = DataLoader(dataset=train_dataset, batch_size= 4, shuffle=True)
-val_loader = DataLoader(dataset=val_dataset, batch_size= 4, shuffle=False)
-test_loader = DataLoader(dataset=test_dataset, batch_size= 4, shuffle=False)
+train_loader = DataLoader(dataset=train_dataset, batch_size= 8, shuffle=True)
+val_loader = DataLoader(dataset=val_dataset, batch_size= 8, shuffle=False)
+test_loader = DataLoader(dataset=test_dataset, batch_size= 8, shuffle=False)
 
 def init_weights(m):
     if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
@@ -97,7 +97,6 @@ def train(epochs, learning_rate):
 
     
 
-# +
 def val(epoch):
     fcn_model.eval() # Put in eval mode (disables batchnorm/dropout) !
     
@@ -134,8 +133,6 @@ def val(epoch):
     return np.mean(mean_iou_scores), np.mean(losses)
 val(0)  # show the accuracy before training
 
-
-# -
 
 def test():
     #TODO: load the best model and complete the rest of the function for testing
@@ -273,7 +270,5 @@ test()
 
 
 # -
-
-
 
 
