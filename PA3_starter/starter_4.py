@@ -23,7 +23,7 @@ train_dataset_flip = TASDataset('tas500v1.1')
 train_dataset_flip.add_horz_flip()
 train_dataset = concat([train_dataset_original,
                         train_dataset_crop,
-                        train_dataset_rotate,   
+                        train_dataset_rotate,
                         train_dataset_flip])
 
 val_dataset = TASDataset('tas500v1.1', eval_mode=True, mode='val')
@@ -39,7 +39,10 @@ def init_weights(m):
         torch.nn.init.normal_(m.bias.data) #xavier not applicable for biases   
 #TODOO!!  weight normalization -> add to normalized data to crossentrophyloss
 
+
+
 criterion = nn.CrossEntropyLoss()# Choose an appropriate loss function from https://pytorch.org/docs/stable/_modules/torch/nn/modules/loss.html
+
 
 
 
