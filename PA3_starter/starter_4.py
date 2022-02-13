@@ -29,9 +29,10 @@ train_dataset = concat([train_dataset_original,
 val_dataset = TASDataset('tas500v1.1', eval_mode=True, mode='val')
 test_dataset = TASDataset('tas500v1.1', eval_mode=True, mode='test')
 
-train_loader = DataLoader(dataset=train_dataset, batch_size= 16, shuffle=True)
-val_loader = DataLoader(dataset=val_dataset, batch_size= 16, shuffle=False)
-test_loader = DataLoader(dataset=test_dataset, batch_size= 16, shuffle=False)
+batch_size = 8
+train_loader = DataLoader(dataset=train_dataset, batch_size= batch_size, shuffle=True)
+val_loader = DataLoader(dataset=val_dataset, batch_size= batch_size, shuffle=False)
+test_loader = DataLoader(dataset=test_dataset, batch_size= batch_size, shuffle=False)
 
 def init_weights(m):
     if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
@@ -141,7 +142,7 @@ def val(fcn_model, epoch):
 
     fcn_model.train() #DONT FORGET TO TURN THE TRAIN MODE BACK ON TO ENABLE BATCHNORM/DROPOUT!!
 
-    return np.mean(mean_iou_scores)
+    return np.mean(mean_iou_scores), np.mean(losses)
 
 def test(fcn_model):
     print("in test")
