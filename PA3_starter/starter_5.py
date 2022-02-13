@@ -44,7 +44,6 @@ else :
     device = torch.device('cpu')
     
 fcn_model.to(device)
-# -
 
 
 
@@ -132,9 +131,6 @@ def val(epoch):
     fcn_model.train() #DONT FORGET TO TURN THE TRAIN MODE BACK ON TO ENABLE BATCHNORM/DROPOUT!!
 
     return np.mean(mean_iou_scores), np.mean(losses)
-val(0)  # show the accuracy before training
-
-
 # -
 
 def test():
@@ -181,17 +177,6 @@ def test():
 
 # +
 #perform test
-val(0)  # show the accuracy before training
-train_record, valid_record = train(epochs, 0.0001)
-
-#plot
-plt.plot(np.arange(epochs), train_record, label= "Training Loss")
-plt.plot(np.arange(epochs), valid_record, label="Validation Loss")
-plt.xlabel("Epoches")
-plt.ylabel("Loss")
-plt.legend()
-plt.show()
-
 
 # +
 #test image
@@ -226,43 +211,8 @@ def test():
             
     print(f"Loss :is {np.mean(losses)}")
     print(f"IoU is {np.mean(mean_iou_scores)}")
-    print(f"Pixel is {np.mean(accuracy)}")    
-    
-    
-    class2color = {}
-    for k, v in test_dataset.color2class.items():
-        class2color[v] = k    
-
-    imgs = []
-    for row in pred[0]:
-        for col in row:
-            imgs.append(class2color[int(col)])
-    imgs = np.asarray(imgs).reshape(pred.shape[1], pred.shape[2], 3)
-    outputimg = PIL.Image.fromarray(np.array(imgs, dtype=np.uint8))
-    plt.axis('off')
-    plt.imshow(inputimg)
-    plt.imshow(outputimg, alpha=0.5)
-
-    plt.title('Output Image')
-    plt.show()
-    
-    imgs = []
-    for rows in label[0]:
-        for col in rows:
-            imgs.append(class2color[int(col)])
-    imgs = np.asarray(imgs).reshape(pred.shape[1], pred.shape[2], 3)
-    outputimg = PIL.Image.fromarray(np.array(imgs, dtype=np.uint8))
-    plt.axis('off')
-    plt.imshow(inputimg)
-    plt.imshow(outputimg, alpha=0.5)
-
-    plt.title('Label Image')
-    plt.show()    
-
+    print(f"Pixel is {np.mean(accuracy)}")  
     return 0
-
-
-test()
 
 
 # -

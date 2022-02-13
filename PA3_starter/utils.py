@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import matplotlib.pyplot as plt
 
 
 def iou(pred, target, n_classes = 10):
@@ -64,4 +65,46 @@ def pixel_acc_ey(pred, target):
 
   return float(res_undef)
 
+
+def visualize(model_name):
+    #TODO: load the best model and complete the rest of the function for testing
+    fcn_model = torch.load('latest_model')
+    fcn_model.eval()
+    inputimg = []
+
+    with torch.no_grad(): # we don't need to calculate the gradient in the validation/testing
+        for iter, (input, label, orgin_img) in enumerate(test_loader):
+            inputimg = orgin_img[0]
+    
+    class2color = {}
+    for k, v in test_dataset.color2class.items():
+        class2color[v] = k    
+
+    imgs = []
+    for row in pred[0]:
+        for col in row:
+            imgs.append(class2color[int(col)])
+    imgs = np.asarray(imgs).reshape(pred.shape[1], pred.shape[2], 3)
+    outputimg = PIL.Image.fromarray(np.array(imgs, dtype=np.uint8))
+    plt.axis('off')
+    plt.imshow(inputimg)
+    plt.imshow(outputimg, alpha=0.5)
+
+    plt.title('Output Image')
+    plt.show()
+    
+    imgs = []
+    for rows in label[0]:
+        for col in rows:
+            imgs.append(class2color[int(col)])
+    imgs = np.asarray(imgs).reshape(pred.shape[1], pred.shape[2], 3)
+    outputimg = PIL.Image.fromarray(np.array(imgs, dtype=np.uint8))
+    plt.axis('off')
+    plt.imshow(inputimg)
+    plt.imshow(outputimg, alpha=0.5)
+
+    plt.title('Label Image')
+    plt.show()    
+
+    return 0
   
