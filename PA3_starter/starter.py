@@ -50,7 +50,7 @@ fcn_model.to(device)
 
 
 
-def train(epochs, learning_rate):
+def train(epochs, learning_rate, save_fp="latest_model_3"):
     optimizer = optim.Adam(fcn_model.parameters(), lr = learning_rate) # choose an optimizer
 
     best_iou_score = 0.0
@@ -88,19 +88,19 @@ def train(epochs, learning_rate):
         train_loss_record.append(np.mean(train_loss))
         
 
-        current_miou_score,valid_loss = val(epoch)
+        current_miou_score,valid_loss = val(fcn_model,epoch)
         valid_loss_record.append(valid_loss)
         
         if current_miou_score > best_iou_score:
             best_iou_score = current_miou_score
             #save the best model
-            torch.save(fcn_model,'latest_model')
+            torch.save(fcn_model,save_fp)
 
     return train_loss_record, valid_loss_record
 
     
 
-def val(epoch):
+def val(fcn_model,epoch):
     fcn_model.eval() # Put in eval mode (disables batchnorm/dropout) !
     
     losses = []
@@ -135,9 +135,9 @@ def val(epoch):
 
     return np.mean(mean_iou_scores), np.mean(losses)
 
-def test():
+def test(fcn_model):
     #TODO: load the best model and complete the rest of the function for testing
-    fcn_model = torch.load('latest_model')
+    print("in test")
     fcn_model.eval()
     losses = []
     mean_iou_scores = []
@@ -175,7 +175,7 @@ def test():
 
 
 if __name__ == "__main__":
-    val(0)  # show the accuracy before training
+    #val(0)  # show the accuracy before training
     #train_record, valid_record = train(epochs, 0.0001)
     #test()
     
