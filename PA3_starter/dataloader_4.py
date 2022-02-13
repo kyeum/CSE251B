@@ -33,18 +33,18 @@ def rgb2vals(color, color2ind):
 
 
 class TASDataset(Dataset):
-    def __init__(self, data_folder, eval=False, mode=None, transform_mode = 0): # mode 0 : origin, mode 1 : crop, mode 2 :flip, mode 3: rotate
+    def __init__(self, data_folder, eval_mode=False, mode=None, transform_mode = 0): # mode 0 : origin, mode 1 : crop, mode 2 :flip, mode 3: rotate
         self.data_folder = data_folder
-        self.eval = eval
+        self.eval_mode = eval_mode
         self.mode = mode
         self.transform_mode = transform_mode
 
         # You can use any valid transformations here
-
+        self.cur_transforms = [transforms.ToTensor(),
+                              transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+                              ]
         # The following transformation normalizes each channel using the mean and std provided
-        self.transform = transforms.Compose([transforms.ToTensor(),
-                                              transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-                                              ])
+        self.transform = transforms.Compose(self.cur_transforms)
         # we will use the following width and height to resize
         self.width = 768
         self.height = 384
@@ -76,7 +76,7 @@ class TASDataset(Dataset):
         self.input_folder = os.path.join(self.data_folder, 'train')
         self.label_folder = os.path.join(self.data_folder, 'train_labels')
 
-        if self.eval:
+        if self.eval_mode:
             self.input_folder = os.path.join(self.data_folder, 'val')
             self.label_folder = os.path.join(self.data_folder, 'val_labels')
         
@@ -93,8 +93,21 @@ class TASDataset(Dataset):
             
         elif self.mode == 'test': # use last 50 images for test
             self.paths = self.paths[50:]
-
+    def add_center_crop(self):
+        self.cur_transforms.insert(1, transforms.CenterCrop((192, 384)))
+        self.cur_transforms.append(transforms.Resize((384, 768)))
+        self.transform = transforms.Compose(self.cur_transforms)
     
+    def add_rand_rot(self):
+        self.cur_transforms.insert(1, transforms.RandomRotation((-5, 5), fill=0))
+        self.cur_transforms.append(transforms.Resize((384, 768)))
+        self.transform = transforms.Compose(self.cur_transforms)
+        
+    def add_horz_flip(self, p=1.0):
+        self.cur_transforms.insert(1, transforms.RandomHorizontalFlip(p))
+        self.cur_transforms.append(transforms.Resize((384, 768)))
+        self.transform = transforms.Compose(self.cur_transforms)
+        
     def __len__(self):
         return len(self.paths)
     
@@ -105,26 +118,6 @@ class TASDataset(Dataset):
         mask_image = np.asarray(PIL.Image.open(self.paths[idx][1]).resize((self.width, self.height), PIL.Image.NEAREST))
         mask =  rgb2vals(mask_image, self.color2class)
 
-        if self.transform_mode == 1 : #crop
-            image = image.transforms.CenterCrop((self.height, self.width))
-            mask_image = mask_image.transforms.CenterCrop((self.height, self.width))
-
-        elif self.transform_mode == 2 : # rotate
-            image = image.transforms.RandomRotation((-5,5),fill = 0)
-            mask_image = mask_image.transforms.RandomRotation((-5,5),fill = 0)
-
-        elif self.transform_mode == 3 : #toDO
-            image = np.fliplr(image)
-            image = np.flipud(image)
-            mask_image = np.fliplr(mask_image)
-            mask_image = np.flipud(mask_image)
-
-        else: 
-            #original data
-            image = np.asarray(PIL.Image.open(self.paths[idx][0]).resize((self.width, self.height)))
-            mask_image = np.asarray(PIL.Image.open(self.paths[idx][1]).resize((self.width, self.height), PIL.Image.NEAREST))
-            mask =  rgb2vals(mask_image, self.color2class)
-        
         if self.transform:
             image = self.transform(image).float()
 
