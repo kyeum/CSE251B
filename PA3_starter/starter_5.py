@@ -9,50 +9,24 @@ import torch
 import gc
 import copy
 import matplotlib.pyplot as plt
-from torch.utilss.data import ConcatDataset as concat
-
 
 
 # TODO: Some missing values are represented by '__'. You need to fill these up.
-train_dataset_original = TASDataset('tas500v1.1') 
-train_dataset_crop = TASDataset('tas500v1.1', transform_mode = 1) 
-train_dataset_rotate = TASDataset('tas500v1.1',transform_mode = 2) 
-train_dataset_flip = TASDataset('tas500v1.1',transform_mode = 3) 
-
-train_dataset = concat([train_dataset_original,train_dataset_crop,train_dataset_rotate,train_dataset_flip])
-
+train_dataset = TASDataset('tas500v1.1') 
 val_dataset = TASDataset('tas500v1.1', eval=True, mode='val')
 test_dataset = TASDataset('tas500v1.1', eval=True, mode='test')
 
 
-train_loader = DataLoader(dataset=train_dataset, batch_size= 4, shuffle=True)
-val_loader = DataLoader(dataset=val_dataset, batch_size= 4, shuffle=False)
-test_loader = DataLoader(dataset=test_dataset, batch_size= 4, shuffle=False)
+train_loader = DataLoader(dataset=train_dataset, batch_size= 8, shuffle=True)
+val_loader = DataLoader(dataset=val_dataset, batch_size= 8, shuffle=False)
+test_loader = DataLoader(dataset=test_dataset, batch_size= 8, shuffle=False)
 
 def init_weights(m):
     if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
         torch.nn.init.xavier_uniform_(m.weight.data)
         torch.nn.init.normal_(m.bias.data) #xavier not applicable for biases   
-#TODOO!!  weight normalization -> add to normalized data to crossentrophyloss
 
-# 4-a
-criterion = nn.CrossEntropyLoss()# Choose an appropriate loss function from https://pytorch.org/docs/stable/_modules/torch/nn/modules/loss.html
-
-# 4-b
-#pressuring the network to categorize the infrequently seen classes. 
-# weighted loss, 
-# dice coefficient loss.
-
-
-
-
-#criterion = nn.CrossEntropyLoss()# Choose an appropriate loss function from https://pytorch.org/docs/stable/_modules/torch/nn/modules/loss.html
-
-
-
-
-
-epochs = 20       
+epochs = 30       
 criterion = nn.CrossEntropyLoss()# Choose an appropriate loss function from https://pytorch.org/docs/stable/_modules/torch/nn/modules/loss.html
 n_class = 10
 fcn_model = FCN(n_class=n_class)
@@ -83,6 +57,7 @@ def train(epochs, learning_rate):
     
     for epoch in range(epochs):
         train_loss = []
+        valid_loss = []
         ts = time.time()
 
         for iter, (inputs, labels) in enumerate(train_loader):
@@ -110,7 +85,8 @@ def train(epochs, learning_rate):
         train_loss_record.append(np.mean(train_loss))
         
 
-        current_miou_score = val(epoch)
+        current_miou_score,  valid_loss = val(epoch)
+        valid_loss_record.append(valid_loss)
         
         if current_miou_score > best_iou_score:
             best_iou_score = current_miou_score
@@ -121,6 +97,7 @@ def train(epochs, learning_rate):
 
     
 
+# +
 def val(epoch):
     fcn_model.eval() # Put in eval mode (disables batchnorm/dropout) !
     
@@ -154,7 +131,11 @@ def val(epoch):
 
     fcn_model.train() #DONT FORGET TO TURN THE TRAIN MODE BACK ON TO ENABLE BATCHNORM/DROPOUT!!
 
-    return np.mean(mean_iou_scores)
+    return np.mean(mean_iou_scores), np.mean(losses)
+val(0)  # show the accuracy before training
+
+
+# -
 
 def test():
     #TODO: load the best model and complete the rest of the function for testing
@@ -187,69 +168,105 @@ def test():
     print(f"Loss :is {np.mean(losses)}")
     print(f"IoU is {np.mean(mean_iou_scores)}")
     print(f"Pixel is {np.mean(accuracy)}")
-    
-    visualization()
-    
     return 0
 
+# +
+#if __name__ == "__main__":
 
-   
-def visualization(): # visualization of the segmented output for the first image in the tes set overlaid on the image. colorcoding mapping in the dataloader.py
-    class2color = {}
-    for k, v in test_dataset.color2class.items():
-        class2color[v] = k
+    #test()
+    
+    # housekeeping
+    #gc.collect() 
+    #torch.cuda.empty_cache()
 
+# +
+#perform test
+val(0)  # show the accuracy before training
+train_record, valid_record = train(epochs, 0.0001)
+
+#plot
+plt.plot(np.arange(epochs), train_record, label= "Training Loss")
+plt.plot(np.arange(epochs), valid_record, label="Validation Loss")
+plt.xlabel("Epoches")
+plt.ylabel("Loss")
+plt.legend()
+plt.show()
+
+
+# +
+#test image
+
+def test():
+    #TODO: load the best model and complete the rest of the function for testing
     fcn_model = torch.load('latest_model')
-    fcn_model.eval()  # Don't forget to put in eval mode !
-    ts = time.time()
-    with torch.no_grad(): # we don't need to calculate the gradient in the validation/testing
+    fcn_model.eval()
+    losses = []
+    mean_iou_scores = []
+    accuracy = []
+    inputimg = []
 
-        for iter, (input, label, real_image) in enumerate(plot_loader):
+    with torch.no_grad(): # we don't need to calculate the gradient in the validation/testing
+        for iter, (input, label, orgin_img) in enumerate(test_loader):
 
             # both inputs and labels have to reside in the same device as the model's
             input = input.to(device) #transfer the input to the same device as the model's
             label = label.type(torch.LongTensor).to(device) #transfer the labels to the same device as the model's
 
             output = fcn_model(input)
-            pred = torch.argmax(output, dim=1) 
-            
+
+            loss = criterion(output, label) #calculate the loss
+            losses.append(loss.item()) #call .item() to get the value from a tensor. The tensor can reside in gpu but item() will still work 
+
+            pred = torch.argmax(output, dim=1) # Make sure to include an argmax to get the prediction from the outputs of your model
+
+            mean_iou_scores.append(np.nanmean(iou_ey(pred, label, n_class)))  # Complete this function in the util, notice the use of np.nanmean() here
         
-            imgs = []
-            for rows in pred[0]:
-                for col in rows:
-                    col = int(col)
-                    imgs.append(class2color[col])
-            imgs = np.asarray(imgs).reshape(pred.shape[1], pred.shape[2], 3)
-            outputimg = PIL.Image.fromarray(np.array(imgs, dtype=np.uint8))
-            plt.axis('off')
-            plt.imshow(real_image[0])
-            plt.imshow(outputimg, alpha=0.8)
+            accuracy.append(pixel_acc_ey(pred, label)) # Complete this function in the util      
+            inputimg = orgin_img[0]
             
-            plt.title('Output Image')
-            plt.show()
-
-            imgs = []
-            for rows in label[0]:
-                for col in rows:
-                    col = int(col)
-                    imgs.append(class2color[col])
-            imgs = np.asarray(imgs).reshape(pred.shape[1], pred.shape[2], 3)
-            outputimg = PIL.Image.fromarray(np.array(imgs, dtype=np.uint8))
-            plt.axis('off')
-            plt.imshow(real_image[0])
-            plt.imshow(outputimg, alpha=0.8)
-            
-            plt.title('Label Image')
-            plt.show()
-
-
-if __name__ == "__main__":
-    val(0)  # show the accuracy before training
-    train_record, valid_record = train(epochs, 0.0001)
-    #test()
+    print(f"Loss :is {np.mean(losses)}")
+    print(f"IoU is {np.mean(mean_iou_scores)}")
+    print(f"Pixel is {np.mean(accuracy)}")    
     
-    # housekeeping
-    gc.collect() 
-    torch.cuda.empty_cache()
+    
+    class2color = {}
+    for k, v in test_dataset.color2class.items():
+        class2color[v] = k    
+
+    imgs = []
+    for row in pred[0]:
+        for col in row:
+            imgs.append(class2color[int(col)])
+    imgs = np.asarray(imgs).reshape(pred.shape[1], pred.shape[2], 3)
+    outputimg = PIL.Image.fromarray(np.array(imgs, dtype=np.uint8))
+    plt.axis('off')
+    plt.imshow(inputimg)
+    plt.imshow(outputimg, alpha=0.5)
+
+    plt.title('Output Image')
+    plt.show()
+    
+    imgs = []
+    for rows in label[0]:
+        for col in rows:
+            imgs.append(class2color[int(col)])
+    imgs = np.asarray(imgs).reshape(pred.shape[1], pred.shape[2], 3)
+    outputimg = PIL.Image.fromarray(np.array(imgs, dtype=np.uint8))
+    plt.axis('off')
+    plt.imshow(inputimg)
+    plt.imshow(outputimg, alpha=0.5)
+
+    plt.title('Label Image')
+    plt.show()    
+
+    return 0
+
+
+test()
+
+
+# -
+
+
 
 
