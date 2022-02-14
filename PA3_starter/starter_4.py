@@ -172,7 +172,52 @@ def test(fcn_model):
     print(f"Pixel is {np.mean(accuracy)}")
     return 0
 
+def visualize(model_name,test_loader,device):
+    #TODO: load the best model and complete the rest of the function for testing
+    fcn_model = torch.load(model_name).to(device)
+    fcn_model.eval()
+    inputimg = []
+    pred = []
+    with torch.no_grad(): # we don't need to calculate the gradient in the validation/testing
+        for iter, (input, label, orgin_img) in enumerate(test_loader):
+            inputimg = orgin_img[0]
+            input = input.to(device) #transfer the input to the same device as the model's
+            label = label.type(torch.LongTensor).to(device) #transfer the labels to the same device as the model's
+            output = fcn_model(input)
+            pred = torch.argmax(output, axis = 1) # Make sure to include an argmax to get the prediction from the outputs of your model
 
+    class2color = {}
+    for k, v in test_dataset.color2class.items():
+        class2color[v] = k    
+
+    imgs = []
+    for row in pred[0]:
+        for col in row:
+            imgs.append(class2color[int(col)])
+    imgs = np.asarray(imgs).reshape(pred.shape[1], pred.shape[2], 3)
+    outputimg = PIL.Image.fromarray(np.array(imgs, dtype=np.uint8))
+    plt.axis('off')
+    plt.imshow(inputimg)
+    plt.imshow(outputimg, alpha=0.5)
+
+    plt.title('Output Image')
+    plt.show()
+    
+    imgs = []
+    for rows in label[0]:
+        for col in rows:
+            imgs.append(class2color[int(col)])
+    imgs = np.asarray(imgs).reshape(pred.shape[1], pred.shape[2], 3)
+    outputimg = PIL.Image.fromarray(np.array(imgs, dtype=np.uint8))
+    plt.axis('off')
+    plt.imshow(inputimg)
+    plt.imshow(outputimg, alpha=0.5)
+
+    plt.title('Label Image')
+    plt.show()    
+
+    return 0
+  
 
 
 if __name__ == "__main__":

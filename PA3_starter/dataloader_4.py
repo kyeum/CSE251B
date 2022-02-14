@@ -106,17 +106,17 @@ class TASDataset(Dataset):
             
         elif self.mode == 'test': # use last 50 images for test
             self.paths = self.paths[50:]
-    def add_rand_crop(self):
-        self.cur_transforms.insert(1, transforms.RandomResizedCrop(size=(384, 768), scale=(0.08, 1.0), ratio=(0.75, 1.3333)))
-        self.transform = transforms.Compose(self.cur_transforms)
+#     def add_rand_crop(self):
+#         self.cur_transforms.insert(1, transforms.RandomResizedCrop(size=(384, 768), scale=(0.08, 1.0), ratio=(0.75, 1.3333)))
+#         self.transform = transforms.Compose(self.cur_transforms)
     
-    def add_rand_rot(self):
-        self.cur_transforms.insert(1, transforms.RandomRotation((-5, 5), fill=0))
-        self.transform = transforms.Compose(self.cur_transforms)
+#     def add_rand_rot(self):
+#         self.cur_transforms.insert(1, transforms.RandomRotation((-5, 5), fill=0))
+#         self.transform = transforms.Compose(self.cur_transforms)
         
-    def add_horz_flip(self, p=0.5):
-        self.cur_transforms.insert(1, transforms.RandomHorizontalFlip(p))
-        self.transform = transforms.Compose(self.cur_transforms)
+#     def add_horz_flip(self, p=0.5):
+#         self.cur_transforms.insert(1, transforms.RandomHorizontalFlip(p))
+#         self.transform = transforms.Compose(self.cur_transforms)
         
     def __len__(self):
         return len(self.paths)
@@ -127,10 +127,15 @@ class TASDataset(Dataset):
         image = np.asarray(PIL.Image.open(self.paths[idx][0]).resize((self.width, self.height)))
         mask_image = np.asarray(PIL.Image.open(self.paths[idx][1]).resize((self.width, self.height), PIL.Image.NEAREST))
 
-    
-#         seed = np.random.randint(2147483647)
         if self.transform:
             image = self.normalize_transform(image).float()
+            
+        if self.mode == 'test':
+            mask =  rgb2vals(mask_image, self.color2class)
+            return image, mask, np.asarray(PIL.Image.open(self.paths[idx][0]).resize((self.width, self.height), PIL.Image.NEAREST))
+        if self.mode == 'val':
+            mask =  rgb2vals(mask_image, self.color2class)
+            return image, mask
             
                    
         mask_image = F.to_tensor(mask_image)
@@ -161,7 +166,4 @@ class TASDataset(Dataset):
 #         print("mask_image_min2():", mask_image.min())   
         mask =  rgb2vals(mask_image, self.color2class)
             
-        if self.mode == 'test':
-            return image, mask, np.asarray(PIL.Image.open(self.paths[idx][0]).resize((self.width, self.height)))
-
         return image, mask
