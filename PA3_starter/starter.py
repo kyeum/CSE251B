@@ -17,9 +17,9 @@ val_dataset = TASDataset('tas500v1.1', eval=True, mode='val')
 test_dataset = TASDataset('tas500v1.1', eval=True, mode='test')
 
 
-train_loader = DataLoader(dataset=train_dataset, batch_size= 16, shuffle=True)
-val_loader = DataLoader(dataset=val_dataset, batch_size= 16, shuffle=False)
-test_loader = DataLoader(dataset=test_dataset, batch_size= 16, shuffle=False)
+train_loader = DataLoader(dataset=train_dataset, batch_size= 8, shuffle=True)
+val_loader = DataLoader(dataset=val_dataset, batch_size= 8, shuffle=False)
+test_loader = DataLoader(dataset=test_dataset, batch_size= 8, shuffle=False)
 
 def init_weights(m):
     if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
@@ -135,38 +135,43 @@ def val(fcn_model,epoch):
 
     return np.mean(mean_iou_scores), np.mean(losses)
 
-def test(fcn_model):
-    #TODO: load the best model and complete the rest of the function for testing
+def test(model_name):
     print("in test")
+    #TODO: load the best model and complete the rest of the function for testing
+    fcn_model = torch.load(model_name)
+
     fcn_model.eval()
+    
     losses = []
     mean_iou_scores = []
     accuracy = []
 
     with torch.no_grad(): # we don't need to calculate the gradient in the validation/testing
 
-        for iter, (input, label), rawimg in enumerate(test_loader):
-
+        for iter, (inputs, labels, rawimg) in enumerate(test_loader):
+    
             # both inputs and labels have to reside in the same device as the model's
-            input = input.to(device) #transfer the input to the same device as the model's
-            label = input.type(torch.LongTensor).to(device) #transfer the labels to the same device as the model's
+            inputs = inputs.to(device) #transfer the input to the same device as the model's
+            labels = labels.type(torch.LongTensor).to(device) #transfer the labels to the same device as the model's
 
-            output = fcn_model(input)
+            output = fcn_model(inputs)
 
-            loss = criterion(output,label) #calculate the loss
+            loss = criterion(output,labels) #calculate the loss
             losses.append(loss.item()) #call .item() to get the value from a tensor. The tensor can reside in gpu but item() will still work 
 
-            pred = torch.argmax(output, dim = 1) # Make sure to include an argmax to get the prediction from the outputs of your model
+            pred = torch.argmax(output, axis = 1) # Make sure to include an argmax to get the prediction from the outputs of your model
 
-            mean_iou_scores.append(np.nanmean(iou_ey(pred, label, n_class)))  # Complete this function in the util, notice the use of np.nanmean() here
+            mean_iou_scores.append(np.nanmean(iou_ey(pred, labels, n_class)))  # Complete this function in the util, notice the use of np.nanmean() here
         
-            accuracy.append(pixel_acc_ey(pred, label)) # Complete this function in the util
+            accuracy.append(pixel_acc_ey(pred, labels)) # Complete this function in the util
 
 
     print(f"Loss :is {np.mean(losses)}")
     print(f"IoU is {np.mean(mean_iou_scores)}")
     print(f"Pixel is {np.mean(accuracy)}")
     return 0
+
+
 
 
 

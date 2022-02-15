@@ -97,8 +97,8 @@ class TASDataset(Dataset):
         
         invalid_labels = ['1537962190852671077.png','1539600515553691119.png', '1539600738459369245.png','1539600829359771415.png','1567611260762673589.png']
             
-        image_names = list(set(image_names).difference(set(invalid_labels)))
-            
+        image_names = sorted(list(set(image_names).difference(set(invalid_labels))))
+        
         self.paths = [(os.path.join(self.input_folder, i), os.path.join(self.label_folder, i)) for i in image_names]
         
         if self.mode == 'val': # use first 50 images for validation
