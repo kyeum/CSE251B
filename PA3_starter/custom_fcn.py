@@ -8,7 +8,7 @@ class Custom(nn.Module):
         super().__init__()
         self.n_class = n_class
         self.leakyRelu = nn.LeakyReLU(0.01, inplace=True)
-
+        self.dropout = nn.Dropout(p=0.5)
         self.Maxpool = nn.MaxPool2d(kernel_size=2,stride=2) # maxpool 2x2 with stride 2 for downsampling
         self.down1   = nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=1, dilation=1)
         self.conv1   = nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=1, dilation=1)
@@ -55,12 +55,12 @@ class Custom(nn.Module):
         x2 = self.Maxpool(x2)
 
         identity3 = self.down3(x2)
-        x3 = self.bnd3(self.leakyRelu(self.conv3(x2)))
+        x3 = self.bnd3(self.dropout(self.leakyRelu(self.conv3(x2))))
         x3 += identity3
         x3 = self.Maxpool(x3)
         
         identity4 = self.down4(x3)
-        x4 = self.bnd4(self.leakyRelu(self.conv4(x3)))
+        x4 = self.bnd4(self.dropout(self.leakyRelu(self.conv4(x3))))
         x4 += identity4
         x4 = self.Maxpool(x4)
 
@@ -77,11 +77,11 @@ class Custom(nn.Module):
         y2 += upidentity2
         
         upidentity3 = self.up3(y2)
-        y3 = self.bn3(self.leakyRelu(self.deconv3(y2)))    
+        y3 = self.bn3(self.dropout(self.leakyRelu(self.deconv3(y2))))    
         y3 += upidentity3
         
         upidentity4 = self.up4(y3)
-        y4 = self.bn4(self.leakyRelu(self.deconv4(y3)))    
+        y4 = self.bn4(self.dropout(self.leakyRelu(self.deconv4(y3))))    
         y4 += upidentity4
         
         out_decoder = self.bn5(self.leakyRelu(self.deconv5(y4)))    
