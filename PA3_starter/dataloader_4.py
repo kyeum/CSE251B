@@ -99,6 +99,10 @@ class TASDataset(Dataset):
             
         image_names = sorted(list(set(image_names).difference(set(invalid_labels))))
         
+        # Shuffle to prevent undiverse validation and test sets.
+        random.seed(7)
+        random.shuffle(image_names)
+        
         self.paths = [(os.path.join(self.input_folder, i), os.path.join(self.label_folder, i)) for i in image_names]
         
         if self.mode == 'val': # use first 50 images for validation
