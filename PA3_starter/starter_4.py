@@ -10,6 +10,7 @@ import gc
 import copy
 import matplotlib.pyplot as plt
 from torch.utils.data import ConcatDataset as concat
+from tqdm import tqdm
 
 print("in starter_4")
 
@@ -30,7 +31,8 @@ test_loader = DataLoader(dataset=test_dataset, batch_size= batch_size, shuffle=F
 def init_weights(m):
     if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
         torch.nn.init.xavier_uniform_(m.weight.data)
-        torch.nn.init.normal_(m.bias.data) #xavier not applicable for biases   
+        if(m.bias is not None):
+            torch.nn.init.normal_(m.bias.data) #xavier not applicable for biases   
 #TODOO!!  weight normalization -> add to normalized data to crossentrophyloss
 
 
@@ -61,7 +63,7 @@ def train(fcn_model, epochs, learning_rate, save_fp="latest_model_4"):
     train_loss_record = []
     valid_loss_record = []
     
-    for epoch in range(epochs):
+    for epoch in tqdm(range(epochs)):
         train_loss = []
         ts = time.time()
         
