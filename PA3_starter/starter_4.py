@@ -191,8 +191,8 @@ def visualize(model_name,test_loader,device):
             pred = torch.argmax(output, axis = 1) # Make sure to include an argmax to get the prediction from the outputs of your model
 
     class2color = {}
-    for k, v in test_dataset.color2class.items():
-        class2color[v] = k    
+    for r, c in test_dataset.color2class.items():
+        class2color[c] = r    
 
     imgs = []
     for row in pred[0]:

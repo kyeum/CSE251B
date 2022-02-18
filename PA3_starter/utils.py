@@ -65,4 +65,3 @@ def pixel_acc_ey(pred, target):
 
   return float(res_undef)
 
-

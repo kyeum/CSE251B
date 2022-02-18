@@ -17,7 +17,7 @@ train_dataset = TASDataset('tas500v1.1')
 val_dataset = TASDataset('tas500v1.1', eval_mode=True, mode='val')
 test_dataset = TASDataset('tas500v1.1', eval_mode=True, mode='test')
 
-batch_size = 8
+batch_size = 4
 train_loader = DataLoader(dataset=train_dataset, batch_size= batch_size, shuffle=True)
 val_loader = DataLoader(dataset=val_dataset, batch_size= batch_size, shuffle=False)
 test_loader = DataLoader(dataset=test_dataset, batch_size= batch_size, shuffle=False)
