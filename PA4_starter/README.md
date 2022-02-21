@@ -8,7 +8,7 @@
 * Implement factories to return project specific models, datasets based on config. Add more flags as per requirement in the config.
 * Implement `experiment.py` based on the project requirements.
 * After defining the configuration (say `my_exp.json`) - simply run `python3 main.py my_exp` to start the experiment
-* The logs, stats, plots and saved models would be stored in `./experiment_data/my_exp` dir. This can be configured in `contants.py`
+* The logs, stats, plots and saved models would be stored in `./experiment_data/my_exp` dir. This can be configured in `constants.py`
 * To resume an ongoing experiment, simply run the same command again. It will load the latest stats and models and resume training pr evaluate performance.
 
 ## Files
