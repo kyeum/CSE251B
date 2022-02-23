@@ -134,6 +134,21 @@ class Experiment_LSTM(object):
                 # update your best model here
                 if i == 0 : 
                     # TODO : add bleu from test function
+                    pred_text = self.__model.forward(images, self.__generation_config)
+                    for pred_text, img_id in zip(pred_text, img_ids):
+                        txt_true = []
+                        for i in self.__coco_test.anns[img_id] : 
+                            caption = i['caption'] 
+                            # Convert caption (string) to word ids.
+                            tokens = nltk.tokenize.word_tokenize(str(caption).lower())
+                            caption = [vocab('<start>')]
+                            caption.extend([vocab(token) for token in tokens])
+                            caption.append(vocab('<end>'))                        
+                            # TODO : add token in coco tset  -> need to know the structure?? 
+                            txt_true.append(tokens)
+                        bleu1 += caption_utils.bleu1(txt_true, pred_text)
+                        bleu4 += caption_utils.bleu4(txt_true, pred_text)
+                        
                     if bleu4 >= self.__best_bleu : 
                         self.__best_bleu = bleu4
                         self.__best_model = self.__model # or save?? 
@@ -152,8 +167,6 @@ class Experiment_LSTM(object):
         bleu4 = 0
         pred_text = []
         
-        
-
         with torch.no_grad():
             for iter, (images, captions, true, img_ids) in enumerate(self.__test_loader):
                 images = images.to(device)
@@ -161,7 +174,8 @@ class Experiment_LSTM(object):
                 true = true.to(device)
                 
                 y = self.__model(images,captions)
-                test_loss = self.__criterion(y,true)                
+                test_loss = self.__criterion(y,true)        
+                        
                 pred_text = self.__model.forward(images, self.__generation_config)
                 
                 for pred_text, img_id in zip(pred_text, img_ids):
@@ -174,13 +188,11 @@ class Experiment_LSTM(object):
                         caption.extend([vocab(token) for token in tokens])
                         caption.append(vocab('<end>'))                        
                         # TODO : add token in coco tset  -> need to know the structure?? 
-                        #txt_true.append()
+                        txt_true.append(tokens)
                     
                     
-                    bleu1 += caption_utils.bleu1(text_true, pred_text)
-                    bleu4 += caption_utils.bleu4(text_true, pred_text)
-
-
+                    bleu1 += caption_utils.bleu1(txt_true, pred_text)
+                    bleu4 += caption_utils.bleu4(txt_true, pred_text)
                 
         test_loss = test_loss / len(self.__test_loader)
         
