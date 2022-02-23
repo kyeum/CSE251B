@@ -23,13 +23,20 @@ def get_model_LSTM(config_data, vocab, DEBUG=True):
     # You may add more parameters if you want
 
     encoder = models.resnet50(pretrained=True)
+    
+    ## Feature Extraction
+    # Freeze all layers of pretrained encoder
+    if feature_extracting:
+        for param in model.parameters():
+            param.requires_grad = False
+            
     fc_in_features = encoder.fc.in_features
     
     if DEBUG:
         print("fc_in_features:", fc_in_features)
         print("embedding_size:", embedding_size)
+
+    # Replace last layer with weight layer to embedding dimension
     encoder.fc = nn.Linear(fc_in_features, embedding_size)
-    
-    # Remove last 2 layers (pooling and fc)
         
     raise NotImplementedError("Model Factory LSTM Not Implemented")
