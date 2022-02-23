@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from datetime import datetime
-
 from caption_utils import *
 from constants import ROOT_STATS_DIR
 from dataset_factory import get_datasets
@@ -16,10 +15,12 @@ from file_utils import *
 from model_factory import get_model_LSTM
 
 
+
 # Class to encapsulate a neural experiment.
 # The boilerplate code to setup the experiment, log stats, checkpoints and plotting have been provided to you.
 # You only need to implement the main training logic of your experiment and implement train, val and test methods.
 # You are free to modify or restructure the code as per your convenience.
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 class Experiment_LSTM(object):
     def __init__(self, name):
         config_data = read_file_in_dir('./', name + '.json')
@@ -36,6 +37,7 @@ class Experiment_LSTM(object):
         # Setup Experiment
         self.__generation_config = config_data['generation']
         self.__epochs = config_data['experiment']['num_epochs']
+        self.__lr = config_data['experiemnt']['learning_rate']
         self.__current_epoch = 0
         self.__training_losses = []
         self.__val_losses = []
@@ -45,8 +47,8 @@ class Experiment_LSTM(object):
         self.__model = get_model_LSTM(config_data, self.__vocab)
 
         # TODO: Set these Criterion and Optimizers Correctly
-        self.__criterion = None
-        self.__optimizer = None
+        self.__criterion = torch.nn.CrossEntropyLoss()
+        self.__optimizer = torch.optim.SGD(self.__model.parameters(), lr=self.__lr, momentum = 0.9)
 
         self.__init_model()
 
@@ -91,10 +93,21 @@ class Experiment_LSTM(object):
         self.__model.train()
         training_loss = 0
 
-        for i, (images, captions, _) in enumerate(self.__train_loader):
-            raise NotImplementedError()
-
-        return training_loss
+        for i, (images, captions, true,_) in enumerate(self.__train_loader):
+            images = images.to(device)
+            captions = captions.to(device)
+            self.__optimizer.zero_grad()
+            y = self.__model(images,captions)
+            loss = self.__criterion(y, true)
+            loss.backward()
+            self.__optimizer.step()
+            training_loss += loss.item()
+            
+            # check in 10th iteration
+            if i % 10 == 0 : 
+                print("epoch : {}, train : {}, loss : {}")
+        return training_loss/len(self.__train_loader)
+            
 
     # TODO: Perform one Pass on the validation set and return loss value. You may also update your best model here.
     def __val(self):
