@@ -42,6 +42,7 @@ class Experiment_LSTM(object):
         self.__training_losses = []
         self.__val_losses = []
         self.__best_model = None  # Save your best model in this field and use this in test method.
+        self.__best_bleu = 0 
 
         # Init Model
         self.__model = get_model_LSTM(config_data, self.__vocab)
@@ -105,7 +106,9 @@ class Experiment_LSTM(object):
             
             # check in 10th iteration
             if i % 10 == 0 : 
-                print("epoch : {}, train : {}, loss : {}")
+                train_str = "Epoch: {}, train_loss: {}".format(self.__current_epoch+1,loss)
+                self.__log(train_str)
+        
         return training_loss/len(self.__train_loader)
             
 
@@ -115,10 +118,32 @@ class Experiment_LSTM(object):
         val_loss = 0
 
         with torch.no_grad():
-            for i, (images, captions, _) in enumerate(self.__val_loader):
-                raise NotImplementedError()
-
-        return val_loss
+            for i, (images, captions, true, img_ids) in enumerate(self.__val_loader):
+                images = images.to(device)
+                captions = captions.to(device)
+                true = true.to(device)
+                y = self.__model(images, captions)
+                loss = self.__criterion(y,true)
+                val_loss += loss.item()
+                
+                if i % 10 == 0 : 
+                    valid_str = "Epoch: {}, valid_loss: {}".format(self.__current_epoch+1,loss)
+                    self.__log(valid_str)      
+                    
+                 #update the best model
+                 #bleu
+                 
+                if bleu4 >= self.__best_bleu : 
+                    self.__best_bleu = bleu4
+                    self.__best_model = self.__model
+                    self.__save_model(name = 'best_model')
+        
+        
+                
+                
+                
+                
+        return val_loss/len(self.__val_loader)
 
     # TODO: Implement your test function here. Generate sample captions and evaluate loss and
     #  bleu scores using the best model. Use utility functions provided to you in caption_utils.
@@ -128,10 +153,40 @@ class Experiment_LSTM(object):
         test_loss = 0
         bleu1 = 0
         bleu4 = 0
+        test_pred = []
+        
+        
 
         with torch.no_grad():
-            for iter, (images, captions, img_ids) in enumerate(self.__test_loader):
-                raise NotImplementedError()
+            for iter, (images, captions, true, img_ids) in enumerate(self.__test_loader):
+                images = images.to(device)
+                captions = captions.to(device)
+                true = true.to(device)
+                
+                y = self.__model(images,captions)
+                loss = self.__criterion(y,true)
+                
+                test_pred = self.__model.forward(images, self.__generation_config)
+                
+                for pred_text, img_id in zip(pred_text, img_ids):
+                    text_true = []
+                    #for i in coco.
+                    
+                    bleu1 += caption_utils.bleu1(text_true, pred_text)
+                    bleu4 += caption_utils.bleu4(text_true, pred_text)
+
+
+                
+        test_loss = test_loss / len(self.__test_loader)
+        
+        bleu1 = bleu1 / len(self.__test_loader) 
+        bleu4 = bleu4 / len(self.__test_loader)        
+                
+                
+                
+
+
+
 
         result_str = "Test Performance: Loss: {}, Perplexity: {}, Bleu1: {}, Bleu4: {}".format(test_loss,
                                                                                                bleu1,
