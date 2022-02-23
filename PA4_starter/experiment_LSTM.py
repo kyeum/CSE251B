@@ -103,9 +103,9 @@ class Experiment_LSTM(object):
             loss.backward()
             self.__optimizer.step()
             training_loss += loss.item()
-            
+
             # check in 10th iteration
-            if i % 10 == 0 : 
+            if i % 10 == 1 : 
                 train_str = "Epoch: {}, train_loss: {}".format(self.__current_epoch+1,loss)
                 self.__log(train_str)
         
@@ -126,23 +126,20 @@ class Experiment_LSTM(object):
                 loss = self.__criterion(y,true)
                 val_loss += loss.item()
                 
-                if i % 10 == 0 : 
+                if i % 10 == 1 : 
                     valid_str = "Epoch: {}, valid_loss: {}".format(self.__current_epoch+1,loss)
                     self.__log(valid_str)      
                     
-                 #update the best model
-                 #bleu
                  
-                if bleu4 >= self.__best_bleu : 
-                    self.__best_bleu = bleu4
-                    self.__best_model = self.__model
-                    self.__save_model(name = 'best_model')
-        
-        
-                
-                
-                
-                
+                # update your best model here
+                if i == 0 : 
+                    # TODO : add bleu from test function
+                    if bleu4 >= self.__best_bleu : 
+                        self.__best_bleu = bleu4
+                        self.__best_model = self.__model # or save?? 
+                        self.__save_model(name = 'best_model')
+
+                  
         return val_loss/len(self.__val_loader)
 
     # TODO: Implement your test function here. Generate sample captions and evaluate loss and
@@ -153,7 +150,7 @@ class Experiment_LSTM(object):
         test_loss = 0
         bleu1 = 0
         bleu4 = 0
-        test_pred = []
+        pred_text = []
         
         
 
@@ -164,13 +161,21 @@ class Experiment_LSTM(object):
                 true = true.to(device)
                 
                 y = self.__model(images,captions)
-                loss = self.__criterion(y,true)
-                
-                test_pred = self.__model.forward(images, self.__generation_config)
+                test_loss = self.__criterion(y,true)                
+                pred_text = self.__model.forward(images, self.__generation_config)
                 
                 for pred_text, img_id in zip(pred_text, img_ids):
-                    text_true = []
-                    #for i in coco.
+                    txt_true = []
+                    for i in self.__coco_test.anns[img_id] : 
+                        caption = i['caption'] 
+                        # Convert caption (string) to word ids.
+                        tokens = nltk.tokenize.word_tokenize(str(caption).lower())
+                        caption = [vocab('<start>')]
+                        caption.extend([vocab(token) for token in tokens])
+                        caption.append(vocab('<end>'))                        
+                        # TODO : add token in coco tset  -> need to know the structure?? 
+                        #txt_true.append()
+                    
                     
                     bleu1 += caption_utils.bleu1(text_true, pred_text)
                     bleu4 += caption_utils.bleu4(text_true, pred_text)
@@ -195,8 +200,8 @@ class Experiment_LSTM(object):
 
         return test_loss, bleu1, bleu4
 
-    def __save_model(self):
-        root_model_path = os.path.join(self.__experiment_dir, 'latest_model.pt')
+    def __save_model(self, name = 'latest_model.pt'):
+        root_model_path = os.path.join(self.__experiment_dir, name)
         model_dict = self.__model.state_dict()
         state_dict = {'model': model_dict, 'optimizer': self.__optimizer.state_dict()}
         torch.save(state_dict, root_model_path)
