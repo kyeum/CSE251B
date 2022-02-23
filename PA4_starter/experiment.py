@@ -30,8 +30,7 @@ class Experiment(object):
         self.__experiment_dir = os.path.join(ROOT_STATS_DIR, self.__name)
 
         # Load Datasets
-        self.__coco_test, self.__vocab, self.__train_loader, self.__val_loader, self.__test_loader = get_datasets(
-            config_data)
+        self.__coco_test, self.__vocab, self.__train_loader, self.__val_loader, self.__test_loader = get_datasets(config_data)
 
         # Setup Experiment
         self.__generation_config = config_data['generation']
@@ -45,8 +44,8 @@ class Experiment(object):
         self.__model = get_model(config_data, self.__vocab)
 
         # TODO: Set these Criterion and Optimizers Correctly
-        self.__criterion = None
-        self.__optimizer = None
+        self.__criterion = nn.CrossEntropyLoss()
+        self.__optimizer = torch.optim.Adam(self.__model.parameters(), lr = 0.001)
 
         self.__init_model()
 
@@ -55,7 +54,7 @@ class Experiment(object):
 
     # Loads the experiment data if exists to resume training from last saved checkpoint.
     def __load_experiment(self):
-        os.makedirs(ROOT_STATS_DIR, exist_ok=True)
+        os.makedirs(ROOT_STATS_DIR, exist_ok = True)
 
         if os.path.exists(self.__experiment_dir):
             self.__training_losses = read_file_in_dir(self.__experiment_dir, 'training_losses.txt')
@@ -92,7 +91,22 @@ class Experiment(object):
         training_loss = 0
 
         for i, (images, captions, _) in enumerate(self.__train_loader):
-            raise NotImplementedError()
+            self.__optimizer.zero_grad()
+            
+            images = images.to(device)
+            captions = captions.to(device)
+
+            outputs = self.__model(images)
+            
+            loss = self.__criterion(outputs, captions)
+            training_loss = (i * training_loss + loss.item()) / (i + 1)
+            
+            loss.backward()
+            
+            self.__optimizer.step()
+            
+            if iter % 10 == 0:
+                print("epoch{}, iter{}, loss: {}".format(self.__current_epoch, i, loss.item()))
 
         return training_loss
 
@@ -103,7 +117,16 @@ class Experiment(object):
 
         with torch.no_grad():
             for i, (images, captions, _) in enumerate(self.__val_loader):
-                raise NotImplementedError()
+                images = images.to(device)
+                captions = captions.to(device)
+
+                output = self.__model(images)
+
+                loss = self.__criterion(output, label)
+                val_loss = (i * val_loss + loss.item()) / (i + 1)
+        
+        if val_loss < np.min(self.__val_losses):
+            self.__best_model = self.__model
 
         return val_loss
 
@@ -115,14 +138,25 @@ class Experiment(object):
         test_loss = 0
         bleu1 = 0
         bleu4 = 0
-
+        
         with torch.no_grad():
             for iter, (images, captions, img_ids) in enumerate(self.__test_loader):
-                raise NotImplementedError()
+                images = images.to(device)
+                captions = captions.to(device)
+                
+                output = self.__model(images)
+                pred = torch.argmax(output.data)
+                
+                loss = self.__criterion(output, label)
+                test_loss = (i * test_loss + loss.item()) / (i + 1)
+                
+        
+        # TODO: BLEU, not sure how to fetch all captions
+        bleu1 = bleu1(captions, pred)
+        bleu4 = bleu4(captions, pred)
+                
 
-        result_str = "Test Performance: Loss: {}, Perplexity: {}, Bleu1: {}, Bleu4: {}".format(test_loss,
-                                                                                               bleu1,
-                                                                                               bleu4)
+        result_str = "Test Performance: Loss: {}, Perplexity: {}, Bleu1: {}, Bleu4: {}".format(test_loss, np.exp(test_loss), bleu1, bleu4)
         self.__log(result_str)
 
         return test_loss, bleu1, bleu4
