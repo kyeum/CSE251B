@@ -14,8 +14,6 @@ from dataset_factory import get_datasets
 from file_utils import *
 from model_factory import get_model_LSTM
 
-
-
 # Class to encapsulate a neural experiment.
 # The boilerplate code to setup the experiment, log stats, checkpoints and plotting have been provided to you.
 # You only need to implement the main training logic of your experiment and implement train, val and test methods.
@@ -98,7 +96,7 @@ class Experiment_LSTM(object):
             images = images.to(device)
             captions = captions.to(device)
             self.__optimizer.zero_grad()
-            y = self.__model(images)
+            y = self.__model(images,captions)
             loss = self.__criterion(y, captions)
             loss.backward()
             self.__optimizer.step()
@@ -161,13 +159,12 @@ class Experiment_LSTM(object):
         pred_text = []
         
         with torch.no_grad():
-            for iter, (images, captions, true, img_ids) in enumerate(self.__test_loader):
+            for iter, (images, captions, img_ids) in enumerate(self.__test_loader):
                 images = images.to(device)
                 captions = captions.to(device)
-                true = true.to(device)
                 
                 y = self.__model(images,captions)
-                test_loss = self.__criterion(y,true)        
+                test_loss = self.__criterion(y,captions)        
                         
                 pred_text = self.__model.forward(images, self.__generation_config)
                 
