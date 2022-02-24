@@ -105,8 +105,8 @@ class Experiment(object):
             
             self.__optimizer.step()
             
-            if iter % 10 == 0:
-                print("epoch{}, iter{}, loss: {}".format(self.__current_epoch, i, loss.item()))
+            if i % 10 == 0:
+                print("epoch{}, iter{}, loss: {}".format(self.__current_epoch + 1, i, loss.item()))
 
         return training_loss
 
@@ -147,8 +147,8 @@ class Experiment(object):
                 output = self.__model(images)
                 pred = torch.argmax(output.data)
                 
-                loss = self.__criterion(output, label)
-                test_loss = (i * test_loss + loss.item()) / (i + 1)
+                loss = self.__criterion(output, captions)
+                test_loss = (iter * test_loss + loss.item()) / (iter + 1)
                 
         
         # TODO: BLEU, not sure how to fetch all captions
@@ -188,8 +188,7 @@ class Experiment(object):
         train_loss = self.__training_losses[self.__current_epoch]
         val_loss = self.__val_losses[self.__current_epoch]
         summary_str = "Epoch: {}, Train Loss: {}, Val Loss: {}, Took {}, ETA: {}\n"
-        summary_str = summary_str.format(self.__current_epoch + 1, train_loss, val_loss, str(time_elapsed),
-                                         str(time_to_completion))
+        summary_str = summary_str.format(self.__current_epoch + 1, train_loss, val_loss, str(time_elapsed), str(time_to_completion))
         self.__log(summary_str, 'epoch.log')
 
     def plot_stats(self):
