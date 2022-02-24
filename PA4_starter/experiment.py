@@ -7,6 +7,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import nltk
 from datetime import datetime
 
 from caption_utils import *
