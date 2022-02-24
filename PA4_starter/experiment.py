@@ -138,6 +138,7 @@ class Experiment(object):
         test_loss = 0
         bleu1 = 0
         bleu4 = 0
+        perp = []
         
         with torch.no_grad():
             for iter, (images, captions, img_ids) in enumerate(self.__test_loader):
@@ -145,18 +146,23 @@ class Experiment(object):
                 captions = captions.to(device)
                 
                 output = self.__model(images)
-                pred = torch.argmax(output.data)
+                pred = self.__model.generation(self.__generation_config)
                 
                 loss = self.__criterion(output, captions)
                 test_loss = (iter * test_loss + loss.item()) / (iter + 1)
+                perp.append(np.exp(loss.item()))
                 
-        
-        # TODO: BLEU, not sure how to fetch all captions
-        bleu1 = bleu1(captions, pred)
-        bleu4 = bleu4(captions, pred)
-                
+                ref = []
+                for i in range(0, len(img_ids)):
+                    for j in range(0, len(__coco_test.imgToAnns[img_ids[i]])):
+                        caption = __coco_test.imgToAnns[img_ids[i]][j]['caption']
+                        tokens = nltk.tokenize.word_tokenize(str(caption).lower())
+                        ref.append(tokens)
+                    
+                bleu1 += bleu1(ref, pred)
+                bleu4 += bleu4(ref, pred)
 
-        result_str = "Test Performance: Loss: {}, Perplexity: {}, Bleu1: {}, Bleu4: {}".format(test_loss, np.exp(test_loss), bleu1, bleu4)
+        result_str = "Test Performance: Loss: {}, Perplexity: {}, Bleu1: {}, Bleu4: {}".format(test_loss, np.mean(perp), bleu1, bleu4)
         self.__log(result_str)
 
         return test_loss, bleu1, bleu4
