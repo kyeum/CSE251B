@@ -95,19 +95,17 @@ class LSTMDecoder(nn.Module):
         print("caption_embed.shape:", caption_embeddings.shape)
         
         batch_size = encoded_image.shape[0]
-        initial_hidden_states = torch.zeros(self.num_layers, batch_size, self.hidden_size)
-        
+        h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size)
+        c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size)
+        initial_hidden_states = (h0, c0)
         # TODO: Initialize our LSTM with the image encoder output to bias our prediction.
         temp, image_hidden_states = self.decoder(encoded_image, initial_hidden_states)
         # TODO: Weight initialization
         print("temp.shape:", temp.shape)
-        print("image_hidden_states.shape:", image_hidden_states.shape)
-        
         
         # Get output and hidden states
         out, hidden = self.decoder(caption_embeddings, image_hidden_states)
         print("out1:", out.shape)
-        print("hidden.shape:", hidden.shape)
         
         out = self.decoder2vocab(out)
         print("out.shape:", out.shape)
@@ -117,7 +115,7 @@ class LSTMDecoder(nn.Module):
         return out # shape: batch_size x seq_len x vocab_size
         
     # Inference
-    def generate_caption(self, encoded_image, sampling_mode=1, end_at_eos=True):
+    def generate_caption(self, encoded_image, sampling_mode=STOCHASTIC, end_at_eos=True):
         """
         Sampling_mode = 0 deterministic
                       = 1 stochastic
