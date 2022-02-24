@@ -94,12 +94,12 @@ class Experiment_LSTM(object):
         self.__model.train()
         training_loss = 0
 
-        for i, (images, captions, true,_) in enumerate(self.__train_loader):
+        for i, (images, captions,_) in enumerate(self.__train_loader):
             images = images.to(device)
             captions = captions.to(device)
             self.__optimizer.zero_grad()
-            y = self.__model(images,captions)
-            loss = self.__criterion(y, true)
+            y = self.__model(images)
+            loss = self.__criterion(y, captions)
             loss.backward()
             self.__optimizer.step()
             training_loss += loss.item()
@@ -118,22 +118,14 @@ class Experiment_LSTM(object):
         val_loss = 0
 
         with torch.no_grad():
-            for i, (images, captions, true, img_ids) in enumerate(self.__val_loader):
+            for i, (images, captions, img_ids) in enumerate(self.__val_loader):
                 images = images.to(device)
                 captions = captions.to(device)
-                true = true.to(device)
                 y = self.__model(images, captions)
-                loss = self.__criterion(y,true)
+                loss = self.__criterion(y,captions)
                 val_loss += loss.item()
-                
-                if i % 10 == 1 : 
-                    valid_str = "Epoch: {}, valid_loss: {}".format(self.__current_epoch+1,loss)
-                    self.__log(valid_str)      
-                    
-                 
-                # update your best model here
+   
                 if i == 0 : 
-                    # TODO : add bleu from test function
                     pred_text = self.__model.forward(images, self.__generation_config)
                     for pred_text, img_id in zip(pred_text, img_ids):
                         txt_true = []
@@ -141,21 +133,22 @@ class Experiment_LSTM(object):
                             caption = i['caption'] 
                             # Convert caption (string) to word ids.
                             tokens = nltk.tokenize.word_tokenize(str(caption).lower())
-                            caption = [vocab('<start>')]
-                            caption.extend([vocab(token) for token in tokens])
-                            caption.append(vocab('<end>'))                        
-                            # TODO : add token in coco tset  -> need to know the structure?? 
                             txt_true.append(tokens)
                         bleu1 += caption_utils.bleu1(txt_true, pred_text)
                         bleu4 += caption_utils.bleu4(txt_true, pred_text)
                         
                     if bleu4 >= self.__best_bleu : 
                         self.__best_bleu = bleu4
-                        self.__best_model = self.__model # or save?? 
+                        self.__best_model = self.__model
                         self.__save_model(name = 'best_model')
+                
+                val_loss = val_loss/len(self.__val_loader)                       
+                if i % 10 == 1 : 
+                    valid_str = "Epoch: {}, valid_loss: {}".format(self.__current_epoch+1,loss)
+                    self.__log(valid_str)   
 
                   
-        return val_loss/len(self.__val_loader)
+        return val_loss
 
     # TODO: Implement your test function here. Generate sample captions and evaluate loss and
     #  bleu scores using the best model. Use utility functions provided to you in caption_utils.
@@ -180,16 +173,11 @@ class Experiment_LSTM(object):
                 
                 for pred_text, img_id in zip(pred_text, img_ids):
                     txt_true = []
-                    for i in self.__coco_test.anns[img_id] : 
+                    for i in self.__coco_test.imgToAnns[img_id] : 
                         caption = i['caption'] 
                         # Convert caption (string) to word ids.
-                        tokens = nltk.tokenize.word_tokenize(str(caption).lower())
-                        caption = [vocab('<start>')]
-                        caption.extend([vocab(token) for token in tokens])
-                        caption.append(vocab('<end>'))                        
-                        # TODO : add token in coco tset  -> need to know the structure?? 
+                        tokens = nltk.tokenize.word_tokenize(str(caption).lower())         
                         txt_true.append(tokens)
-                    
                     
                     bleu1 += caption_utils.bleu1(txt_true, pred_text)
                     bleu4 += caption_utils.bleu4(txt_true, pred_text)
