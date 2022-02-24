@@ -31,7 +31,7 @@ def get_model_LSTM(config_data, vocab, DEBUG=True):
         return False
     
     encoder = LSTMEncoder(image_embedding_size=embedding_size)
-    decoder = LSTMDecoder(vocab_size=vocab_size, hidden_size=hidden_size, word_embedding_size=embedding_size, num_layers=num_layers):
+    decoder = LSTMDecoder(vocab_size=vocab_size, hidden_size=hidden_size, word_embedding_size=embedding_size, num_layers=num_layers)
     model = LSTM(encoder, decoder)
         
     return model

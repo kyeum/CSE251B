@@ -1,8 +1,9 @@
 from torchvision import models
 import torch.nn as nn
 
-class LSTM(nn.module):
+class LSTM(nn.Module):
     def __init__(self, encoder, decoder):
+        super(LSTM, self).__init__()
         self.encoder = encoder
         self.decoder = decoder
     
@@ -17,7 +18,7 @@ class LSTM(nn.module):
         
         return out
         
-class LSTMEncoder(nn.module):
+class LSTMEncoder(nn.Module):
     def __init__(self, image_embedding_size=300):
         super(LSTMEncoder, self).__init__()
         ### Encoder
@@ -41,12 +42,15 @@ class LSTMEncoder(nn.module):
         """
         return self.encoder(images)
     
-class LSTMDecoder(nn.module):
+class LSTMDecoder(nn.Module):
     def __init__(self, vocab_size=-1, hidden_size=512, word_embedding_size=300, num_layers=2):
+        super(LSTMDecoder, self).__init__()
+        
         # input: (N, L, H_in) = batch_size x seq_len x input_size
         # output: (N, L, D * H_out) = batch_size x seq_len, proj_size) 
         #     [here proj_size=hidden_size]
-        self.decoder = nn.LSTM(input_size=word_embedding_size, hidden_size=hidden_size, num_layers=num_layers, proj_size=hidden_size, batch_first=True)
+        # proj_size cannot be passed as hidden_size! 
+        self.decoder = nn.LSTM(input_size=word_embedding_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=True)
         
         ### Given a vocab word index, returns the word embedding
         # Input: (*) indices of embedding

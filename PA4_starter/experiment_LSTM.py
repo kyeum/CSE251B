@@ -37,7 +37,7 @@ class Experiment_LSTM(object):
         # Setup Experiment
         self.__generation_config = config_data['generation']
         self.__epochs = config_data['experiment']['num_epochs']
-        self.__lr = config_data['experiemnt']['learning_rate']
+        self.__lr = config_data['experiment']['learning_rate']
         self.__current_epoch = 0
         self.__training_losses = []
         self.__val_losses = []
