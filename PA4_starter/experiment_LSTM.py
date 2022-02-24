@@ -12,7 +12,7 @@ from caption_utils import *
 from constants import ROOT_STATS_DIR
 from dataset_factory import get_datasets
 from file_utils import *
-from model_factory import get_model_LSTM
+from model_factory import get_model
 
 # Class to encapsulate a neural experiment.
 # The boilerplate code to setup the experiment, log stats, checkpoints and plotting have been provided to you.
@@ -35,7 +35,7 @@ class Experiment_LSTM(object):
         # Setup Experiment
         self.__generation_config = config_data['generation']
         self.__epochs = config_data['experiment']['num_epochs']
-        self.__lr = config_data['experiemnt']['learning_rate']
+        self.__lr = config_data['experiment']['learning_rate']
         self.__current_epoch = 0
         self.__training_losses = []
         self.__val_losses = []
@@ -43,7 +43,7 @@ class Experiment_LSTM(object):
         self.__best_bleu = 0 
 
         # Init Model
-        self.__model = get_model_LSTM(config_data, self.__vocab)
+        self.__model = get_model(config_data, self.__vocab)
 
         # TODO: Set these Criterion and Optimizers Correctly
         self.__criterion = torch.nn.CrossEntropyLoss()
@@ -52,7 +52,7 @@ class Experiment_LSTM(object):
         self.__init_model()
 
         # Load Experiment Data if available
-        self.__load_experiment()
+#         self.__load_experiment()
 
     # Loads the experiment data if exists to resume training from last saved checkpoint.
     def __load_experiment(self):
@@ -77,8 +77,10 @@ class Experiment_LSTM(object):
 
     # Main method to run your experiment. Should be self-explanatory.
     def run(self):
+        print("In training loop...")
         start_epoch = self.__current_epoch
         for epoch in range(start_epoch, self.__epochs):  # loop over the dataset multiple times
+            print("epoch:", epoch)
             start_time = datetime.now()
             self.__current_epoch = epoch
             train_loss = self.__train()
@@ -86,6 +88,7 @@ class Experiment_LSTM(object):
             self.__record_stats(train_loss, val_loss)
             self.__log_epoch_stats(start_time)
             self.__save_model()
+        print("Finished training!")
 
     # TODO: Perform one training iteration on the whole dataset and return loss value
     def __train(self):
@@ -163,7 +166,10 @@ class Experiment_LSTM(object):
                 images = images.to(device)
                 captions = captions.to(device)
                 
-                y = self.__model(images,captions)
+                y = self.__model(images) # don't pass in captions for inference
+                
+                # TODO: probably need to pad output to match true_size
+                #       or add as setting in LSTM to pad to max_seq_len
                 test_loss = self.__criterion(y,captions)        
                         
                 pred_text = self.__model.forward(images, self.__generation_config)
@@ -183,11 +189,6 @@ class Experiment_LSTM(object):
         
         bleu1 = bleu1 / len(self.__test_loader) 
         bleu4 = bleu4 / len(self.__test_loader)        
-                
-                
-                
-
-
 
 
         result_str = "Test Performance: Loss: {}, Perplexity: {}, Bleu1: {}, Bleu4: {}".format(test_loss,
