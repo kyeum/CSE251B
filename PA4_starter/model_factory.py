@@ -6,16 +6,18 @@
 from torchvision import models
 import torch.nn as nn
 from models import LSTM, LSTMEncoder, LSTMDecoder
-import constants
+from constants import *
 
 # Build and return the model here based on the configuration.
 def get_model(config_data, vocab):
+    print("Getting model...")
     model_type = config_data['model']['model_type']
     
     if model_type == 'LSTM':
-        model = get_model_LSTM(config, vocab)
+        model = get_model_LSTM(config_data, vocab)
         if model:
-            return get_model_LSTM(config, vocab)
+            print("Got model!")
+            return model
         
     # You may add more parameters if you want
 
@@ -25,8 +27,9 @@ def get_model_LSTM(config_data, vocab, DEBUG=True):
     hidden_size = config_data['model']['hidden_size']
     embedding_size = config_data['model']['embedding_size']
     model_type = config_data['model']['model_type']
+    max_seq_len = config_data['generation']['max_length'] + 2
     num_layers = 2
-    vocab_size = len(vocab) # TODO
+    vocab_size = len(vocab)
     
     if model_type != 'LSTM':
         return False
@@ -36,7 +39,7 @@ def get_model_LSTM(config_data, vocab, DEBUG=True):
     # Get EOS token index from vocab for decoder to know when to stop generating
     EOS_TOK_INDEX = vocab(EOS_TOK)
     
-    decoder = LSTMDecoder(vocab_size=vocab_size, eos_tok_index=EOS_TOK_INDEX, hidden_size=hidden_size, word_embedding_size=embedding_size, num_layers=num_layers)
+    decoder = LSTMDecoder(vocab_size=vocab_size, eos_tok_index=EOS_TOK_INDEX, hidden_size=hidden_size, word_embedding_size=embedding_size, num_layers=num_layers, max_seq_len=max_seq_len)
     model = LSTM(encoder, decoder)
         
     return model

@@ -1,5 +1,7 @@
 from torchvision import models
 import torch.nn as nn
+from constants import *
+import torch
 
 class LSTM(nn.Module):
     def __init__(self, encoder, decoder):
@@ -14,7 +16,18 @@ class LSTM(nn.Module):
         
         encoded_images = self.encoder(images)
         
-        out = self.decoder(encoded_images, captions)
+        print("image_shape:", images.shape)
+        print("enc_image_shape:", encoded_images.shape)
+        print("captions.shape:", captions.shape)
+        # image_shape: torch.Size([64, 3, 256, 256])
+        # enc_image_shape: torch.Size([64, 300])
+        # captions.shape: torch.Size([64, 22])
+        
+        if inference:
+            word_seq = self.decoder.generate_caption(encoded_images, sampling_mode=STOCHASTIC, max_seq_len=20, end_at_eos=True)
+            return word_seq
+        else:
+            out = self.decoder(encoded_images, captions)
         
         return out
         
@@ -43,65 +56,78 @@ class LSTMEncoder(nn.Module):
         return self.encoder(images)
     
 class LSTMDecoder(nn.Module):
-    def __init__(self, vocab_size=-1, eos_tok_index=-1, hidden_size=512, word_embedding_size=300, num_layers=2):
+    def __init__(self, vocab_size=-1, eos_tok_index=-1, hidden_size=512, word_embedding_size=300, num_layers=2, max_seq_len=20):
         super(LSTMDecoder, self).__init__()
         
         # input: (N, L, H_in) = batch_size x seq_len x input_size
         # output: (N, L, D * H_out) = batch_size x seq_len, proj_size) 
         #     [here proj_size=hidden_size]
         # proj_size cannot be passed as hidden_size! 
+        self.hidden_size = hidden_size
         self.decoder = nn.LSTM(input_size=word_embedding_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=True)
         
         ### Given a vocab word index, returns the word embedding
         # Input: (*) indices of embedding
         # Output: (*, H) where * is input shape and H = embedding_dim
         self.vocab2wordEmbed = nn.Embedding(num_embeddings=vocab_size, embedding_dim=word_embedding_size)
-        
+        self.num_layers = num_layers
         # Converts from LSTM output to vocab size
         self.decoder2vocab = nn.Linear(hidden_size, vocab_size)
         
         # Softmax
         self.softmax = nn.Softmax(dim=2)
         
+        self.max_seq_len = max_seq_len
+        
         # Constants
         self.EOS_TOK_INDEX = eos_tok_index;
-        self.DETERMINISTIC = 0
-        self.STOCHASTIC = 1
+        
     
     def initHidden(self):
         return torch.zeros(1, 1, self.hidden_size, device=device)
     
     # encoded_caption is in form of vocab word indices
     def forward(self, encoded_image, captions):
+        encoded_image = encoded_image.unsqueeze(1)
         # TODO: add case when captions is empty
         caption_embeddings = self.vocab2wordEmbed(captions)
         
-        # TODO: Initialize our LSTM with the image encoder output to bias our prediction.
+        print("caption_embed.shape:", caption_embeddings.shape)
         
+        batch_size = encoded_image.shape[0]
+        initial_hidden_states = torch.zeros(self.num_layers, batch_size, self.hidden_size)
+        
+        # TODO: Initialize our LSTM with the image encoder output to bias our prediction.
+        temp, image_hidden_states = self.decoder(encoded_image, initial_hidden_states)
         # TODO: Weight initialization
+        print("temp.shape:", temp.shape)
+        print("image_hidden_states.shape:", image_hidden_states.shape)
         
         
         # Get output and hidden states
-        out, hidden = self.decoder(caption_embeddings, encoded_image)
+        out, hidden = self.decoder(caption_embeddings, image_hidden_states)
+        print("out1:", out.shape)
+        print("hidden.shape:", hidden.shape)
         
         out = self.decoder2vocab(out)
+        print("out.shape:", out.shape)
         
         # Get probabilities of each word
         out = self.softmax(out)
         return out # shape: batch_size x seq_len x vocab_size
         
     # Inference
-    def generate_caption(self, encoded_image, sampling_mode=1, max_seq_len=12, end_at_eos=True):
+    def generate_caption(self, encoded_image, sampling_mode=1, end_at_eos=True):
         """
         Sampling_mode = 0 deterministic
                       = 1 stochastic
         """
         word_seq = [] # indices of words
         
-        for i in range(max_seq_len):
+        for i in range(self.max_seq_len):
             out = self.forward(encoded_image, word_seq)
             # Get word indice based on sampling_mode
-            if sampling_mode == self.DETERMINISTIC:
+            if sampling_mode == DETERMINISTIC:
                 wordIndice = out[2].argmax()
                 word_seq.append(wordIndice)
             else:
