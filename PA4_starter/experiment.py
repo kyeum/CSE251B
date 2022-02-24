@@ -146,8 +146,8 @@ class Experiment(object):
                 images = images.to(device)
                 captions = captions.to(device)
                 
-                output = self.__model(images)
-                pred = self.__model.generation(self.__generation_config)
+                output = self.__best_model(images)
+                pred = self.__best_model.generation(self.__generation_config)
                 
                 loss = self.__criterion(output, captions)
                 test_loss = (iter * test_loss + loss.item()) / (iter + 1)
