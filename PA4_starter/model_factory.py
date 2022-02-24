@@ -6,6 +6,7 @@
 from torchvision import models
 import torch.nn as nn
 from models import LSTM, LSTMEncoder, LSTMDecoder
+import constants
 
 # Build and return the model here based on the configuration.
 def get_model(config_data, vocab):
@@ -31,7 +32,11 @@ def get_model_LSTM(config_data, vocab, DEBUG=True):
         return False
     
     encoder = LSTMEncoder(image_embedding_size=embedding_size)
-    decoder = LSTMDecoder(vocab_size=vocab_size, hidden_size=hidden_size, word_embedding_size=embedding_size, num_layers=num_layers)
+    
+    # Get EOS token index from vocab for decoder to know when to stop generating
+    EOS_TOK_INDEX = vocab(EOS_TOK)
+    
+    decoder = LSTMDecoder(vocab_size=vocab_size, eos_tok_index=EOS_TOK_INDEX, hidden_size=hidden_size, word_embedding_size=embedding_size, num_layers=num_layers)
     model = LSTM(encoder, decoder)
         
     return model

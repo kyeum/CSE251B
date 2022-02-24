@@ -43,7 +43,7 @@ class LSTMEncoder(nn.Module):
         return self.encoder(images)
     
 class LSTMDecoder(nn.Module):
-    def __init__(self, vocab_size=-1, hidden_size=512, word_embedding_size=300, num_layers=2):
+    def __init__(self, vocab_size=-1, eos_tok_index=-1, hidden_size=512, word_embedding_size=300, num_layers=2):
         super(LSTMDecoder, self).__init__()
         
         # input: (N, L, H_in) = batch_size x seq_len x input_size
@@ -64,7 +64,7 @@ class LSTMDecoder(nn.Module):
         self.softmax = nn.Softmax(dim=2)
         
         # Constants
-        self.EOS_TOK = 0;
+        self.EOS_TOK_INDEX = eos_tok_index;
         self.DETERMINISTIC = 0
         self.STOCHASTIC = 1
     
@@ -108,7 +108,7 @@ class LSTMDecoder(nn.Module):
                 gen_word_index = torch.multinomial(input=out, num_samples=1, replacement=True)
                 word_seq.append(gen_word_index)
                 
-            if wordIndice == self.EOS_TOK:
+            if end_at_eos and wordIndice == self.EOS_TOK_INDEX:
                 return word_seq
             
         return word_seq
