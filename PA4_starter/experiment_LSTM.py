@@ -55,7 +55,7 @@ class Experiment_LSTM(object):
         self.__init_model()
 
         # Load Experiment Data if available
-#         self.__load_experiment()
+        #self.__load_experiment()
 
     # Loads the experiment data if exists to resume training from last saved checkpoint.
     def __load_experiment(self):
@@ -119,10 +119,11 @@ class Experiment_LSTM(object):
                 training_loss += loss.item()
             loss.backward()
             self.__optimizer.step()
-            training_loss = training_loss/len(self.__train_loader)
             if i % 10 == 1 : 
-                train_str = "Epoch: {}, train_loss: {}".format(self.__current_epoch+1,loss)
+                train_str = "Epoch: {}, Batch: {} train_loss: {}".format(self.__current_epoch+1,i,loss)
                 self.__log(train_str)
+        training_loss = training_loss/len(self.__train_loader)
+      
         
         return training_loss
             
@@ -145,9 +146,6 @@ class Experiment_LSTM(object):
                     cur_targets = targets[:, cur_i]
                     loss = self.__criterion(cur_y, cur_targets)
                     val_loss += loss.item()
-
-                loss.backward()
-                self.__optimizer.step()
    
                 if i == 0 : 
                     pred_text = y
@@ -166,10 +164,11 @@ class Experiment_LSTM(object):
                         self.__best_model = self.__model
                         self.__save_model(name = 'best_model')
                 
-                val_loss = val_loss/len(self.__val_loader)                       
                 if i % 10 == 1 : 
-                    valid_str = "Epoch: {}, valid_loss: {}".format(self.__current_epoch+1,loss)
+                    valid_str = "Epoch: {}, Batch: {} valid_loss: {}".format(self.__current_epoch+1,i,loss)
+
                     self.__log(valid_str)   
+            val_loss = val_loss/len(self.__val_loader)                       
 
                   
         return val_loss
@@ -196,10 +195,8 @@ class Experiment_LSTM(object):
                     cur_y = y[:, cur_i, :]
                     cur_targets = targets[:, cur_i]
                     loss = self.__criterion(cur_y, cur_targets)
-                    val_loss += loss.item()   
-                                          
-                loss.backward()
-                self.__optimizer.step()
+                    test_loss += loss.item()   
+
                 # TODO: probably need to pad output to match true_size
                 #       or add as setting in LSTM to pad to max_seq_len
                 # targets = pack_padded_sequence(captions, len(captions).reshape(-1, device=device), batch_first=True)
