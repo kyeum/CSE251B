@@ -7,6 +7,11 @@ from torchvision import models
 import torch.nn as nn
 from models import LSTM, LSTMEncoder, LSTMDecoder
 from constants import *
+import torch
+
+
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+print("MODEL_FAC - DEVICE:", device)
 
 # Build and return the model here based on the configuration.
 def get_model(config_data, vocab):
@@ -40,7 +45,7 @@ def get_model_LSTM(config_data, vocab, DEBUG=True):
     EOS_TOK_INDEX = vocab(EOS_TOK)
     
     decoder = LSTMDecoder(vocab_size=vocab_size, eos_tok_index=EOS_TOK_INDEX, hidden_size=hidden_size, word_embedding_size=embedding_size, num_layers=num_layers, max_seq_len=max_seq_len)
-    model = LSTM(encoder, decoder)
+    model = LSTM(encoder, decoder, device)
         
     return model
 

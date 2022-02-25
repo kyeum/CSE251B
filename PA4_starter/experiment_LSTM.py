@@ -9,7 +9,7 @@ import numpy as np
 import torch
 from datetime import datetime
 from caption_utils import *
-from constants import ROOT_STATS_DIR
+from constants import ROOT_STATS_DIR, BOS_TOK, EOS_TOK
 from dataset_factory import get_datasets
 from file_utils import *
 from model_factory import get_model
@@ -20,6 +20,8 @@ from torch.nn.utils.rnn import pack_padded_sequence
 # You only need to implement the main training logic of your experiment and implement train, val and test methods.
 # You are free to modify or restructure the code as per your convenience.
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
+
 class Experiment_LSTM(object):
     def __init__(self, name):
         config_data = read_file_in_dir('./', name + '.json')
@@ -91,22 +93,51 @@ class Experiment_LSTM(object):
             self.__save_model()
         print("Finished training!")
 
+    def onehot_captions(self, captions):
+        return torch.nn.functional.one_hot(captions, num_classes=len(self.__vocab))
+        
     # TODO: Perform one training iteration on the whole dataset and return loss value
     def __train(self):
         self.__model.train()
         training_loss = 0
 
         for i, (images, captions,_) in enumerate(self.__train_loader):
+#             collate_fn((images, captions))
             images = images.to(device)
+#             seq_len = len(captions)
+#             seq_len = len(captions[0])
+#             seq_len = torch.tensor(seq_len, device=torch.device('cpu')).expand(len(captions))
+#             targets = pack_padded_sequence(captions, seq_len, batch_first=True)[0]
+#             targets.to(device)
+
+            
             captions = captions.to(device)
             self.__optimizer.zero_grad()
             y = self.__model(images,captions)
-            targets = pack_padded_sequence(captions, len(captions), batch_first=True)
             
-            loss = self.__criterion(y, targets)
+            # Onehot encode captions
+#             targets = self.onehot_captions(captions)
+            targets = captions
+#             print("targets shape:", targets.shape)
+            
+#             print("yshape:", y.shape)
+            
+            seq_len = len(captions[0])
+            for cur_i in range(seq_len):
+                cur_y = y[:, cur_i, :]
+                cur_targets = targets[:, cur_i]
+                # y of shape [batch_size, class_num]
+                # targets of shape [batch_size, class_index] in each seq_len is the index of class
+                loss = self.__criterion(cur_y, cur_targets)
+                training_loss += loss.item()
+                
             loss.backward()
             self.__optimizer.step()
-            training_loss += loss.item()
+
+#             loss = self.__criterion(y, targets)
+#             loss.backward()
+#             self.__optimizer.step()
+#             training_loss += loss.item()
 
             # check in 10th iteration
             if i % 10 == 1 : 
@@ -126,10 +157,20 @@ class Experiment_LSTM(object):
                 images = images.to(device)
                 captions = captions.to(device)
                 y = self.__model(images, captions)
-                targets = pack_padded_sequence(captions, len(captions), batch_first=True)
                 
-                loss = self.__criterion(y, targets)                
-                val_loss += loss.item()
+                
+                targets = captions
+                
+                seq_len = len(captions[0])
+                for cur_i in range(seq_len):
+                    cur_y = y[:, cur_i, :]
+                    cur_targets = targets[:, cur_i]
+                    loss = self.__criterion(cur_y, cur_targets)
+                    val_loss += loss.item()
+
+                loss.backward()
+                self.__optimizer.step()
+            
    
                 if i == 0 : 
                     pred_text = self.__model.forward(images, self.__generation_config)
@@ -175,7 +216,7 @@ class Experiment_LSTM(object):
                 
                 # TODO: probably need to pad output to match true_size
                 #       or add as setting in LSTM to pad to max_seq_len
-                targets = pack_padded_sequence(captions, len(captions), batch_first=True)
+#                 targets = pack_padded_sequence(captions, len(captions).reshape(-1, device=device), batch_first=True)
                 
                 loss = self.__criterion(y, targets)                        
                 pred_text = self.__model.forward(images, self.__generation_config)

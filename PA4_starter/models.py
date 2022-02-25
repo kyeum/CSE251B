@@ -3,10 +3,16 @@ import torch.nn as nn
 from constants import *
 import torch
 
+
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+print("MODELS - DEVICE:", device)
+
 class LSTM(nn.Module):
-    def __init__(self, encoder, decoder):
+    def __init__(self, encoder, decoder, device):
         super(LSTM, self).__init__()
+        encoder.to(device)
         self.encoder = encoder
+        decoder.to(device)
         self.decoder = decoder
     
     def forward(self, images, captions):
@@ -16,9 +22,9 @@ class LSTM(nn.Module):
         
         encoded_images = self.encoder(images)
         
-        print("image_shape:", images.shape)
-        print("enc_image_shape:", encoded_images.shape)
-        print("captions.shape:", captions.shape)
+#         print("image_shape:", images.shape)
+#         print("enc_image_shape:", encoded_images.shape)
+#         print("captions.shape:", captions.shape)
         # image_shape: torch.Size([64, 3, 256, 256])
         # enc_image_shape: torch.Size([64, 300])
         # captions.shape: torch.Size([64, 22])
@@ -92,23 +98,25 @@ class LSTMDecoder(nn.Module):
         # TODO: add case when captions is empty
         caption_embeddings = self.vocab2wordEmbed(captions)
         
-        print("caption_embed.shape:", caption_embeddings.shape)
+#         print("caption_embed.shape:", caption_embeddings.shape)
         
         batch_size = encoded_image.shape[0]
-        h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size)
-        c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size)
+        h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size, device=device)
+        c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size, device=device)
         initial_hidden_states = (h0, c0)
+        
+        
         # TODO: Initialize our LSTM with the image encoder output to bias our prediction.
         temp, image_hidden_states = self.decoder(encoded_image, initial_hidden_states)
         # TODO: Weight initialization
-        print("temp.shape:", temp.shape)
+#         print("temp.shape:", temp.shape)
         
         # Get output and hidden states
         out, hidden = self.decoder(caption_embeddings, image_hidden_states)
-        print("out1:", out.shape)
+#         print("out1:", out.shape)
         
         out = self.decoder2vocab(out)
-        print("out.shape:", out.shape)
+#         print("out.shape:", out.shape)
         
         # Get probabilities of each word
         out = self.softmax(out)
