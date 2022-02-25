@@ -102,26 +102,13 @@ class Experiment_LSTM(object):
         training_loss = 0
 
         for i, (images, captions,_) in enumerate(self.__train_loader):
-#             collate_fn((images, captions))
             images = images.to(device)
-#             seq_len = len(captions)
-#             seq_len = len(captions[0])
-#             seq_len = torch.tensor(seq_len, device=torch.device('cpu')).expand(len(captions))
-#             targets = pack_padded_sequence(captions, seq_len, batch_first=True)[0]
-#             targets.to(device)
-
-            
             captions = captions.to(device)
             self.__optimizer.zero_grad()
             y = self.__model(images,captions)
             
             # Onehot encode captions
-#             targets = self.onehot_captions(captions)
             targets = captions
-#             print("targets shape:", targets.shape)
-            
-#             print("yshape:", y.shape)
-            
             seq_len = len(captions[0])
             for cur_i in range(seq_len):
                 cur_y = y[:, cur_i, :]
@@ -130,21 +117,14 @@ class Experiment_LSTM(object):
                 # targets of shape [batch_size, class_index] in each seq_len is the index of class
                 loss = self.__criterion(cur_y, cur_targets)
                 training_loss += loss.item()
-                
             loss.backward()
             self.__optimizer.step()
-
-#             loss = self.__criterion(y, targets)
-#             loss.backward()
-#             self.__optimizer.step()
-#             training_loss += loss.item()
-
-            # check in 10th iteration
+            training_loss = training_loss/len(self.__train_loader)
             if i % 10 == 1 : 
                 train_str = "Epoch: {}, train_loss: {}".format(self.__current_epoch+1,loss)
                 self.__log(train_str)
         
-        return training_loss/len(self.__train_loader)
+        return training_loss
             
 
     # TODO: Perform one Pass on the validation set and return loss value. You may also update your best model here.
@@ -157,8 +137,6 @@ class Experiment_LSTM(object):
                 images = images.to(device)
                 captions = captions.to(device)
                 y = self.__model(images, captions)
-                
-                
                 targets = captions
                 
                 seq_len = len(captions[0])
@@ -170,10 +148,9 @@ class Experiment_LSTM(object):
 
                 loss.backward()
                 self.__optimizer.step()
-            
    
                 if i == 0 : 
-                    pred_text = self.__model.forward(images, self.__generation_config)
+                    pred_text = y
                     for pred_text, img_id in zip(pred_text, img_ids):
                         txt_true = []
                         for i in self.__coco_test.anns[img_id] : 
@@ -211,15 +188,21 @@ class Experiment_LSTM(object):
             for iter, (images, captions, img_ids) in enumerate(self.__test_loader):
                 images = images.to(device)
                 captions = captions.to(device)
+                targets = captions
+                y = self.__model(images, captions)
                 
-                y = self.__model(images) # don't pass in captions for inference
+                seq_len = len(captions[0])
+                for cur_i in range(seq_len):
+                    cur_y = y[:, cur_i, :]
+                    cur_targets = targets[:, cur_i]
+                    loss = self.__criterion(cur_y, cur_targets)
+                    val_loss += loss.item()                         
                 
                 # TODO: probably need to pad output to match true_size
                 #       or add as setting in LSTM to pad to max_seq_len
-#                 targets = pack_padded_sequence(captions, len(captions).reshape(-1, device=device), batch_first=True)
-                
-                loss = self.__criterion(y, targets)                        
-                pred_text = self.__model.forward(images, self.__generation_config)
+                # targets = pack_padded_sequence(captions, len(captions).reshape(-1, device=device), batch_first=True)
+
+                pred_text =  y
                 
                 for pred_text, img_id in zip(pred_text, img_ids):
                     txt_true = []
@@ -238,9 +221,7 @@ class Experiment_LSTM(object):
         bleu4 = bleu4 / len(self.__test_loader)        
 
 
-        result_str = "Test Performance: Loss: {}, Perplexity: {}, Bleu1: {}, Bleu4: {}".format(test_loss,
-                                                                                               bleu1,
-                                                                                               bleu4)
+        result_str = "Test Performance: Loss: {}, Bleu1: {}, Bleu4: {}".format(test_loss, bleu1, bleu4)
         self.__log(result_str)
 
         return test_loss, bleu1, bleu4
