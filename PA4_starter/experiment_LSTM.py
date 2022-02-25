@@ -196,8 +196,10 @@ class Experiment_LSTM(object):
                     cur_y = y[:, cur_i, :]
                     cur_targets = targets[:, cur_i]
                     loss = self.__criterion(cur_y, cur_targets)
-                    val_loss += loss.item()                         
-                
+                    val_loss += loss.item()   
+                                          
+                loss.backward()
+                self.__optimizer.step()
                 # TODO: probably need to pad output to match true_size
                 #       or add as setting in LSTM to pad to max_seq_len
                 # targets = pack_padded_sequence(captions, len(captions).reshape(-1, device=device), batch_first=True)
