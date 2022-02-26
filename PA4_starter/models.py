@@ -33,6 +33,35 @@ class LSTM(nn.Module):
             out = self.decoder(encoded_images, captions)
         
         return out
+    
+    def generate_caption_ey(self, encoded_image, states=None, sampling_mode=STOCHASTIC, max_seq_len=22, temperature = 1):
+        # start_input = torch.ones((encoded_image.shape[0], 1)).long().to('cuda')
+        # USE index instead of <start> -> not efficient!! #torch.tensor(1).to('cuda') # this is the '<start>'
+        #lstm_input = self.vocab2wordEmbed(start_input)
+        
+        encoded_image = torch.unsqueeze(1) 
+        captions = []
+        
+        for i in range(max_seq_len):
+
+
+            output = self.forward(encoded_image, initial_hidden_states)
+
+            
+            if sampling_mode == STOCHASTIC : 
+                lstm_final_word = self.softmax(output/temperature)
+                predicted = torch.multinomial(input=output, num_samples=1, replacement=True)
+            else:
+                _, predicted = output.max(1)
+
+            captions.append(predicted)
+            lstm_input = self.vocab2wordEmbed(predicted)
+            lstm_input = torch.unsqueeze(lstm_input, 1)
+        captions = torch.stack(captions, 1)
+        print(captions)
+        return captions 
+    
+    
         
 class LSTMEncoder(nn.Module):
     def __init__(self, image_embedding_size=300):
@@ -146,7 +175,79 @@ class LSTMDecoder(nn.Module):
 
         
         return out # shape: batch_size x seq_len x vocab_size
+
+
+class RNNDecoder(nn.Module):
+    def __init__(self, vocab_size=-1, eos_tok_index=-1, hidden_size=512, word_embedding_size=300, num_layers=2, max_seq_len=22):
+        super(RNNDecoder, self).__init__()
         
+        # input: (N, L, H_in) = batch_size x seq_len x input_size
+        # output: (N, L, D * H_out) = batch_size x seq_len, proj_size) 
+        #     [here proj_size=hidden_size]
+        # proj_size cannot be passed as hidden_size! 
+        self.hidden_size = hidden_size
+        self.decoder = nn.RNN(input_size=word_embedding_size, hidden_size=hidden_size, num_layers=num_layers, nonlinearity='relu', batch_first=True)
+        ### Given a vocab word index, returns the word embedding
+        # Input: (*) indices of embedding
+        # Output: (*, H) where * is input shape and H = embedding_dim
+        self.vocab2wordEmbed = nn.Embedding(num_embeddings=vocab_size, embedding_dim=word_embedding_size)
+        self.num_layers = num_layers
+        # Converts from LSTM output to vocab size
+        self.decoder2vocab = nn.Linear(hidden_size, vocab_size)
+        
+        # Softmax
+        self.softmax = nn.Softmax(dim=2)
+        
+        self.max_seq_len = max_seq_len
+        
+        # Constants
+        self.EOS_TOK_INDEX = eos_tok_index;
+        
+    
+    def initHidden(self):
+        return torch.zeros(1, 1, self.hidden_size, device=device)
+    
+    # encoded_caption is in form of vocab word indices
+    def forward(self, encoded_image, captions):
+    
+        encoded_image = encoded_image.unsqueeze(1)
+        # TODO: add case when captions is empty
+        caption_embeddings = self.vocab2wordEmbed(captions)
+        
+#         print("caption_embed.shape:", caption_embeddings.shape)
+        
+        batch_size = encoded_image.shape[0]
+        h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size, device=device)
+        c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size, device=device)
+        initial_hidden_states = (h0, c0)
+        
+        
+        # TODO: Initialize our LSTM with the image encoder output to bias our prediction.
+        temp, image_hidden_states = self.decoder(encoded_image, initial_hidden_states)
+        # TODO: Weight initialization
+#         print("temp.shape:", temp.shape)
+        
+        # Get output and hidden states
+        out, hidden = self.decoder(caption_embeddings, image_hidden_states)
+#         print("out1:", out.shape)
+        
+        out = self.decoder2vocab(out)
+#         print("out.shape:", out.shape)
+        
+        # Get probabilities of each word
+        #out = self.softmax(out)
+        #print("out.shape:", out.shape)
+
+        
+        return out # shape: batch_size x seq_len x vocab_size
+
+
+    
+    
+
+    
+    
+    
     # Inference
     def generate_caption(self, encoded_image, sampling_mode=STOCHASTIC, max_seq_len = 22,end_at_eos=True):
         """
@@ -169,34 +270,6 @@ class LSTMDecoder(nn.Module):
                 return word_seq
             
         return word_seq
-        
-  
-    def generate_caption_ey(self, encoded_image, states=None,sampling_mode=STOCHASTIC, max_seq_len=22, temperature = 1):
-        #start_input = torch.ones((encoded_image.shape[0], 1)).long().to('cuda')
-        # USE index instead of <start> -> not efficient!! #torch.tensor(1).to('cuda') # this is the '<start>'
-        #lstm_input = self.vocab2wordEmbed(start_input)
-        
-        encoded_image = torch.unsqueeze(1) 
-        captions = []
-        
-        for i in range(max_seq_len):
-
-
-            output = self.forward(encoded_image, initial_hidden_states)
-
-            
-            if sampling_mode == STOCHASTIC : 
-                lstm_final_word = self.softmax(output/temperature)
-                predicted = torch.multinomial(input=output, num_samples=1, replacement=True)
-            else:
-                _, predicted = output.max(1)
-
-            captions.append(predicted)
-            lstm_input = self.vocab2wordEmbed(predicted)
-            lstm_input = torch.unsqueeze(lstm_input, 1)
-        captions = torch.stack(captions, 1)
-        print(captions)
-        return captions 
     
 
         
