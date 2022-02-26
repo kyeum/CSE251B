@@ -118,6 +118,7 @@ class Experiment_LSTM(object):
             if i % 100 == 1 : 
                 train_str = "Epoch: {}, Batch: {} train_loss: {}".format(self.__current_epoch+1,i,loss)
                 self.__log(train_str)
+                break
         training_loss = training_loss/len(self.__train_loader)
       
         
