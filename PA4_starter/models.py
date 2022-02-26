@@ -183,14 +183,19 @@ class LSTMDecoder(nn.Module):
         h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size, device=device)
         c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size, device=device)
         initial_hidden_states = (h0, c0)
+        print("LSTM_INPUT:SHAPE:", lstm_input.shape)
         temp,imh_hidden_states = self.decoder(lstm_input, initial_hidden_states)
         
-        _,temp = self.decoder2vocab(temp).max(1)
+        print('tempBEF',temp.shape)
+        _,temp = self.decoder2vocab(temp).max(2)
         #temp = torch.unsqueeze(temp, 1)
-        #print('temp',temp.shape)
-
+        print('tempBEF',temp.shape)
+        temp = self.vocab2wordEmbed(temp)
+        print('tempAFT',temp.shape)
         
         for i in range(max_seq_len):
+            print(f'i:{i}, imh_shape:{imh_hidden_states[0].shape}')
+            print(f'i:{i}, temp:{temp.shape}')
 
             output,imh_hidden_states = self.decoder(temp, imh_hidden_states)
             output = self.decoder2vocab(output)
@@ -199,16 +204,16 @@ class LSTMDecoder(nn.Module):
                 output = self.softmax(output/temperature)
                 predicted = torch.multinomial(input=output, num_samples=1, replacement=True)
             else:
-                _, predicted = output.max(1)
+                _, predicted = output.max(2)
 
             caption_txt.append(predicted)
             temp = self.vocab2wordEmbed(predicted)
-            temp = torch.unsqueeze(start_input, 1)
+#             temp = torch.unsqueeze(start_input, 1)
 
             
         caption_txt = torch.stack(caption_txt, 1)
-        print(caption_txt)
-        return captions 
+#         print(caption_txt)
+        return caption_txt
     
 
         
