@@ -52,10 +52,8 @@ class LSTMEncoder(nn.Module):
         # Don't need to unfreeze as new linear layer has grads enabled.
         self.encoder.fc = nn.Linear(fc_in_features, image_embedding_size)
         '''
-
         hidden_size = 512
  
-    
         self.model = models.resnet50(pretrained=True)
         self.fc_in_feature = self.model.fc.in_features
         
@@ -64,7 +62,6 @@ class LSTMEncoder(nn.Module):
         self.encoder = nn.Sequential(*layers)
         for param in self.encoder.parameters():
             param.requires_grad = False           
-        #self.model = nn.Sequential(*list(self.model.children())[:-1])
 
 
         self.linear = nn.Linear(in_features=self.fc_in_feature, out_features=image_embedding_size, bias=True)
@@ -188,7 +185,11 @@ class LSTMDecoder(nn.Module):
         initial_hidden_states = (h0, c0)
         temp,imh_hidden_states = self.decoder(lstm_input, initial_hidden_states)
         
+        _,temp = self.decoder2vocab(temp).max(1)
+        #temp = torch.unsqueeze(temp, 1)
+        #print('temp',temp.shape)
 
+        
         for i in range(max_seq_len):
 
             output,imh_hidden_states = self.decoder(temp, imh_hidden_states)
@@ -210,13 +211,6 @@ class LSTMDecoder(nn.Module):
         return captions 
     
 
-        
-        
-        
-        
-        
-        
-        
         
         
         
