@@ -7,13 +7,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import nltk
 from datetime import datetime
-from caption_utils import *
+import caption_utils
 from constants import ROOT_STATS_DIR, BOS_TOK, EOS_TOK
 from dataset_factory import get_datasets
 from file_utils import *
 from model_factory import get_model
-from torch.nn.utils.rnn import pack_padded_sequence
 
 # Class to encapsulate a neural experiment.
 # The boilerplate code to setup the experiment, log stats, checkpoints and plotting have been provided to you.
@@ -106,20 +106,16 @@ class Experiment_LSTM(object):
             captions = captions.to(device)
             self.__optimizer.zero_grad()
             y = self.__model(images,captions)
+            # y : 8x 22 x vocab -> permute 8 x vocab x 22
             
-            # Onehot encode captions
-            targets = captions
-            seq_len = len(captions[0])
-            for cur_i in range(seq_len):
-                cur_y = y[:, cur_i, :]
-                cur_targets = targets[:, cur_i]
-                # y of shape [batch_size, class_num]
-                # targets of shape [batch_size, class_index] in each seq_len is the index of class
-                loss = self.__criterion(cur_y, cur_targets)
-                training_loss += loss.item()
+            y = y.permute(0,2,1) # batch size change  # caption : 8 x 22 
+            # TODO : caption start from 1 - end, y start from 0 : end -1? for LSTM ???? IG???? 
+            
+            loss = self.__criterion(y, captions)
+            training_loss += loss.item()
             loss.backward()
             self.__optimizer.step()
-            if i % 10 == 1 : 
+            if i % 100 == 1 : 
                 train_str = "Epoch: {}, Batch: {} train_loss: {}".format(self.__current_epoch+1,i,loss)
                 self.__log(train_str)
         training_loss = training_loss/len(self.__train_loader)
@@ -132,39 +128,37 @@ class Experiment_LSTM(object):
     def __val(self):
         self.__model.eval()
         val_loss = 0
+        bleu4 = 0
 
         with torch.no_grad():
             for i, (images, captions, img_ids) in enumerate(self.__val_loader):
                 images = images.to(device)
                 captions = captions.to(device)
-                y = self.__model(images, captions)
-                targets = captions
-                
-                seq_len = len(captions[0])
-                for cur_i in range(seq_len):
-                    cur_y = y[:, cur_i, :]
-                    cur_targets = targets[:, cur_i]
-                    loss = self.__criterion(cur_y, cur_targets)
-                    val_loss += loss.item()
-   
+                y = self.__model(images, captions)                
+                y = y.permute(0,2,1) # batch size change  # caption : 8 x 22 
+
+                loss = self.__criterion(y, captions)
+                val_loss += loss
                 if i == 0 : 
-                    pred_text = y
+                    cap = None
+                    pred_text =  self.__model(images,cap)
+                    
                     for pred_text, img_id in zip(pred_text, img_ids):
                         txt_true = []
-                        for i in self.__coco_test.anns[img_id] : 
-                            caption = i['caption'] 
-                            # Convert caption (string) to word ids.
-                            tokens = nltk.tokenize.word_tokenize(str(caption).lower())
-                            txt_true.append(tokens)
-                        bleu1 += caption_utils.bleu1(txt_true, pred_text)
-                        bleu4 += caption_utils.bleu4(txt_true, pred_text)
+                        for i in self.__coco_test.imgToAnns[img_id] : 
+                            caption = i['caption'].lower() 
+                            cap2tok = nltk.tokenize.word_tokenize(str(caption).lower())
+                            txt_true.append(cap2tok)
+
+                        bleu4 += caption_utils.bleu4(txt_true, pred_text)                       
+                            
                         
                     if bleu4 >= self.__best_bleu : 
                         self.__best_bleu = bleu4
                         self.__best_model = self.__model
                         self.__save_model(name = 'best_model')
                 
-                if i % 10 == 1 : 
+                if i % 100 == 1 : 
                     valid_str = "Epoch: {}, Batch: {} valid_loss: {}".format(self.__current_epoch+1,i,loss)
 
                     self.__log(valid_str)   
@@ -189,35 +183,33 @@ class Experiment_LSTM(object):
                 captions = captions.to(device)
                 targets = captions
                 y = self.__model(images, captions)
+
+                y = y.permute(0,2,1) # batch size change  # caption : 8 x 22 
+
+                # TODO : caption start from 1 - end, y start from 0 : end -1? for LSTM ???? IG???? 
+                #captions = captions[:,1:], #y = y[:, :, :-1]?? Better to move this to in __train loader.!!
+
+                loss = self.__criterion(y, captions)                
+                test_loss += loss
                 
-                seq_len = len(captions[0])
-                for cur_i in range(seq_len):
-                    cur_y = y[:, cur_i, :]
-                    cur_targets = targets[:, cur_i]
-                    loss = self.__criterion(cur_y, cur_targets)
-                    test_loss += loss.item()   
 
                 # TODO: probably need to pad output to match true_size
-                #       or add as setting in LSTM to pad to max_seq_len
-                # targets = pack_padded_sequence(captions, len(captions).reshape(-1, device=device), batch_first=True)
-
-                pred_text =  y
-                
+                pred_text =  self.__model(images)
                 for pred_text, img_id in zip(pred_text, img_ids):
                     txt_true = []
                     for i in self.__coco_test.imgToAnns[img_id] : 
-                        caption = i['caption'] 
-                        # Convert caption (string) to word ids.
-                        tokens = nltk.tokenize.word_tokenize(str(caption).lower())         
-                        txt_true.append(tokens)
+                        caption = i['caption'].lower()
+                        cap2tok = nltk.tokenize.word_tokenize(str(caption).lower())
+                        txt_true.append(cap2tok)
                     
-                    bleu1 += caption_utils.bleu1(txt_true, pred_text)
-                    bleu4 += caption_utils.bleu4(txt_true, pred_text)
+                    bleu1_loss += caption_utils.bleu1(txt_true, pred_text)
+                    bleu4_loss += caption_utils.bleu4(txt_true, pred_text)
                 
         test_loss = test_loss / len(self.__test_loader)
         
-        bleu1 = bleu1 / len(self.__test_loader) 
-        bleu4 = bleu4 / len(self.__test_loader)        
+        bleu1_loss = bleu1_loss / len(self.__test_loader) 
+        bleu4_loss = bleu4_loss / len(self.__test_loader)        
+
 
 
         result_str = "Test Performance: Loss: {}, Bleu1: {}, Bleu4: {}".format(test_loss, bleu1, bleu4)
