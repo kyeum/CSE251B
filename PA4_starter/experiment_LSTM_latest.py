@@ -213,11 +213,11 @@ class Experiment_LSTM(object):
 
                     txt_true = []
                     for i in self.__coco_test.imgToAnns[img_id] : 
-                        caption = i['caption'].lower().split(' ')
-                        #cap2tok = nltk.tokenize.word_tokenize(str(caption).lower())
-                        txt_true.append(caption)
-                        cnt = cnt + 1
-
+                        caption = i['caption'].lower()
+                        cap2tok = nltk.tokenize.word_tokenize(str(caption).lower())
+                        txt_true.append(cap2tok)
+                        
+                    cnt = cnt + 1
                     #1x22
                     pred_ = self.__cap2word(pred_,self.__vocab, 22)[0].split(' ')
                     
@@ -301,7 +301,7 @@ class Experiment_LSTM(object):
                     continue
                 if word == "<end>":
                     sentence = ' '.join(words)
-                    #sentence = sentence.lower()
+                    sentence = sentence.lower()
                     batch_caption.append(sentence)
                     words = []
                     break
@@ -310,11 +310,9 @@ class Experiment_LSTM(object):
                 #debug for max
                 if(len(words) == 22):
                     print('max')
-                    sentence = ' '.join(words)
+                    sentence = ' '.join(words).lower()
                     batch_caption.append(sentence)
                     words = []
-
-        #batch_caption = nltk.tokenize.word_tokenize(str(batch_caption).lower())
 
         return batch_caption
     
