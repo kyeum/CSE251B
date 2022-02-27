@@ -27,7 +27,7 @@ class LSTM(nn.Module):
         
         if inference:
             #word_seq = self.decoder.generate_caption(encoded_images, sampling_mode=STOCHASTIC, max_seq_len=20, end_at_eos=True)
-            word_seq = self.decoder.generate_caption_ey(encoded_images,sampling_mode=STOCHASTIC, max_seq_len=22,temperature = 0.1)
+            word_seq = self.decoder.generate_caption_ey(encoded_images,sampling_mode=STOCHASTIC, max_seq_len=22,temperature = 1)
 
             return word_seq
         else:
@@ -140,7 +140,7 @@ class LSTMDecoder(nn.Module):
 #         print("out.shape:", out.shape)
         
         # Get probabilities of each word
-#         out = self.softmax(out)
+        #$out = self.softmax(out)
         #print("out.shape:", out.shape)
 
         
@@ -195,7 +195,8 @@ class LSTMDecoder(nn.Module):
         temp = self.vocab2wordEmbed(temp)
         #print('tempAFT',temp.shape)
         
-        #temp = start_input
+        temp = start_input
+        
         for i in range(max_seq_len):
             #print(f'i:{i}, imh_shape:{imh_hidden_states[0].shape}')
             #print(f'i:{i}, temp:{temp.shape}')
@@ -204,7 +205,7 @@ class LSTMDecoder(nn.Module):
             output = self.decoder2vocab(output)
 
             if sampling_mode == STOCHASTIC : 
-                print("--STOCHASTIC--")
+                #print("--STOCHASTIC--")
                 output = self.softmax(output/temperature)
 #                 print("output.shape:", output.shape)
                 predicted = torch.multinomial(input=output.squeeze(1), num_samples=1, replacement=False)
@@ -225,4 +226,5 @@ class LSTMDecoder(nn.Module):
             
         caption_txt = torch.stack(caption_txt, 1)
         return caption_txt
+    
     
