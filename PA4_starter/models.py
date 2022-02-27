@@ -139,6 +139,7 @@ class LSTMDecoder(nn.Module):
 
         temp = self.decoder2vocab(temp)
         out = self.decoder2vocab(out)
+        out = out[:, :-1, :]
 #         print("temp.shape:", temp.shape)
 #         print("out.shape:", out.shape)
 

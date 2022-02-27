@@ -118,7 +118,7 @@ class Experiment_LSTM(object):
             y = y.permute(0,2,1)
             # TODO : caption start from 1 - end, y start from 0 : end -1? for LSTM ???? IG???? 
             # DONT PASS IN LAST GENERATED TOK
-            y = y[:, :, :-1]
+#             y = y[:, :, :-1]
 #             print("y.shape:", y.shape)
 #             print("captions.shape:", captions.shape)
             loss = self.__criterion(y, captions)
