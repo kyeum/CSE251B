@@ -118,7 +118,6 @@ class Experiment_LSTM(object):
             if i % 100 == 1 : 
                 train_str = "Epoch: {}, Batch: {} train_loss: {}".format(self.__current_epoch+1,i,loss)
                 self.__log(train_str)
-                break
         training_loss = training_loss/len(self.__train_loader)
       
         
@@ -143,18 +142,17 @@ class Experiment_LSTM(object):
                 #print("cpation", self.__model(images, None))                
                 pred_text = self.__model(images, None)                
 
-                print('y, shape_pred, shape_target',y.shape, pred_text.shape,captions.shape)
+                #print('y, shape_pred, shape_target',y.shape, pred_text.shape,captions.shape)
                 
                 if(val_loss < self.__best_val_loss):
                     self.__best_val_loss = val_loss
                     print("Saving the model in {} epochs".format(self.__current_epoch+1))
                     self.__best_model = self.__model
-                    self.__save_model(name = 'best_model2')
+                    self.__save_model(name = 'best_model3')
                 
                 if i % 100 == 1 : 
                     valid_str = "Epoch: {}, Batch: {} valid_loss: {}".format(self.__current_epoch+1,i,loss)
                     self.__log(valid_str) 
-                    break
 
             val_loss = val_loss/len(self.__val_loader)                       
 
@@ -165,7 +163,7 @@ class Experiment_LSTM(object):
     #  bleu scores using the best model. Use utility functions provided to you in caption_utils.
     #  Note than you'll need image_ids and COCO object in this case to fetch all captions to generate bleu scores.
     def test(self):
-        state_dict = torch.load(os.path.join(self.__experiment_dir, 'best_model'))
+        state_dict = torch.load(os.path.join(self.__experiment_dir, 'best_model3'))
         self.__model.load_state_dict(state_dict['model'])
         self.__optimizer.load_state_dict(state_dict['optimizer'])
         self.__model.eval()
@@ -186,23 +184,32 @@ class Experiment_LSTM(object):
                 test_loss += loss
 
                 # TODO: probably need to pad output to match true_size
-                pred_text =  self.__model(images,None)
+                pred_text =  self.__model(images,None) # 8 x 22 x 1
+                print(pred_text.shape)                 #
                 
-                #print("pred_text",pred_text)
+                pred_text = pred_text.permute(0,2,1) # batch size change  # caption : 8 x 22 x 1
 
-                for pred_text, img_id in zip(pred_text, img_ids):
+                print("pred_text shape",pred_text.shape,"img_ids", len(img_ids))# 8 
+                
+                for pred_, img_id in zip(pred_text, img_ids): # total 8 batches 
+                    #print(pred_.shape)
+                    #break
+
                     txt_true = []
                     for i in self.__coco_test.imgToAnns[img_id] : 
                         caption = i['caption'].lower()
                         #cap2tok = nltk.tokenize.word_tokenize(str(caption).lower())
                         txt_true.append(caption)
-                    pred_text = self.__cap2word(pred_text,self.__vocab, 22)
-                        
+                    # true text! 
+                    # predicted!
+                    #1x22
+                    pred_ = self.__cap2word(pred_,self.__vocab, 22)
+                    
                     print("txt_true",txt_true)
-                    print("pred_text",pred_text)
+                    print("pred_text",pred_)
 
-                    bleu1 += caption_utils.bleu1(txt_true, pred_text)
-                    bleu4 += caption_utils.bleu4(txt_true, pred_text)
+                    bleu1 += caption_utils.bleu1(txt_true, pred_)
+                    bleu4 += caption_utils.bleu4(txt_true, pred_)
                     break
                 
         test_loss = test_loss / len(self.__test_loader)
@@ -259,32 +266,32 @@ class Experiment_LSTM(object):
         plt.savefig(os.path.join(self.__experiment_dir, "stat_plot.png"))
         plt.show()
         
-    def __cap2word(self,caption, vocab, max_count=20):
+    def __cap2word(self,caption, vocab, max_count=23):
         """
             Here, we generate the text caption for the given batch of images
         """
         batch_caption = []
         words = []
+  
         img_caption = caption.cpu().numpy()
-        print(img_caption)
+        print(img_caption.shape)
         
         for word_id in img_caption:    
-            print(word_id)
+            #print(word_id.shape)
             word = vocab.idx2word[word_id[0]]
             if word == "<start>":
-                print(word)
                 words = []
                 continue
             if word == "<end>":
-                print(word)
                 sentence = ' '.join(words)
                 sentence = sentence.lower()
                 batch_caption.append(sentence)
                 words = []
-                #break
+                break
+                
             words.append(word)
             #debug for max
-            if(len(words) == max_count):
+            if(len(words) == 22):
                 print('max')
 
                 sentence = ' '.join(words).lower()

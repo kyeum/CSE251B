@@ -7,6 +7,7 @@ from torch.nn.utils.rnn import pack_padded_sequence
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print("MODELS - DEVICE:", device)
+import torch.utils.data as data
 
 class LSTM(nn.Module):
     def __init__(self, encoder, decoder, device):
@@ -100,7 +101,7 @@ class LSTMDecoder(nn.Module):
         self.decoder2vocab = nn.Linear(hidden_size, vocab_size)
         
         # Softmax
-        self.softmax = nn.Softmax(dim=1)
+        self.softmax = nn.Softmax(dim=2)
         
         self.max_seq_len = max_seq_len
         
@@ -139,13 +140,14 @@ class LSTMDecoder(nn.Module):
 #         print("out.shape:", out.shape)
         
         # Get probabilities of each word
-        #out = self.softmax(out)
+        out = self.softmax(out)
         #print("out.shape:", out.shape)
 
         
         return out # shape: batch_size x seq_len x vocab_size
         
     # Inference
+    '''
     def generate_caption(self, encoded_image, sampling_mode=STOCHASTIC, max_seq_len = 22,end_at_eos=True):
         """
         Sampling_mode = 0 deterministic
@@ -160,14 +162,14 @@ class LSTMDecoder(nn.Module):
                 wordIndice = out[2].argmax()
                 word_seq.append(wordIndice)
             else:
-                gen_word_index = torch.multinomial(input=out, num_samples=1, replacement=True)
+                gen_word_index = torch.multinomial(input=out, num_samples=1, replacement=False)
                 word_seq.append(gen_word_index)
                 
             if end_at_eos and wordIndice == self.EOS_TOK_INDEX:
                 return word_seq
             
         return word_seq
-        
+    ''' 
   
     def generate_caption_ey(self, encoded_image,states=None,sampling_mode=STOCHASTIC, max_seq_len=22, temperature = 1):
         start_input = torch.ones((encoded_image.shape[0], 1)).long().to('cuda')
@@ -183,41 +185,40 @@ class LSTMDecoder(nn.Module):
         h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size, device=device)
         c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size, device=device)
         initial_hidden_states = (h0, c0)
-        print("LSTM_INPUT:SHAPE:", lstm_input.shape)
+        #print("LSTM_INPUT:SHAPE:", lstm_input.shape)
         temp,imh_hidden_states = self.decoder(lstm_input, initial_hidden_states)
         
-        print('tempBEF',temp.shape)
+        #print('tempBEF',temp.shape)
         _,temp = self.decoder2vocab(temp).max(2)
         #temp = torch.unsqueeze(temp, 1)
-        print('tempBEF',temp.shape)
+        #print('tempBEF',temp.shape)
         temp = self.vocab2wordEmbed(temp)
-        print('tempAFT',temp.shape)
+        #print('tempAFT',temp.shape)
         
+        #temp = start_input
         for i in range(max_seq_len):
-            print(f'i:{i}, imh_shape:{imh_hidden_states[0].shape}')
-            print(f'i:{i}, temp:{temp.shape}')
+            #print(f'i:{i}, imh_shape:{imh_hidden_states[0].shape}')
+            #print(f'i:{i}, temp:{temp.shape}')
 
             output,imh_hidden_states = self.decoder(temp, imh_hidden_states)
             output = self.decoder2vocab(output)
 
             if sampling_mode == STOCHASTIC : 
-                output = self.softmax(output/temperature)
-                predicted = torch.multinomial(input=output, num_samples=1, replacement=True)
+                #output = self.softmax(output/temperature)
+                predicted = torch.multinomial(input=output, num_samples=1, replacement=False)
+
             else:
+                #output = self.softmax(output)
+                #print(output)                
                 _, predicted = output.max(2)
+                #print(predicted)                
 
             caption_txt.append(predicted)
+            
             temp = self.vocab2wordEmbed(predicted)
-#             temp = torch.unsqueeze(start_input, 1)
+#            temp = torch.unsqueeze(temp, 1)
 
             
         caption_txt = torch.stack(caption_txt, 1)
-#         print(caption_txt)
         return caption_txt
     
-
-        
-        
-        
-        
-        
