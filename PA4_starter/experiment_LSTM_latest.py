@@ -184,7 +184,7 @@ class Experiment_LSTM(object):
         bleu1 = 0
         bleu4 = 0
         pred_text = []
-        
+        cnt = 0;
         with torch.no_grad():
             for iter, (images, captions, img_ids) in enumerate(self.__test_loader):
                 images = images.to(device)
@@ -201,11 +201,11 @@ class Experiment_LSTM(object):
 
                 # TODO: probably need to pad output to match true_size
                 pred_text =  self.__model(images,None) # 8 x 22 x 1
-                print(pred_text.shape)                 #
+                #print(pred_text.shape)                 #
                 
                 #pred_text = pred_text.permute(0,2,1) # batch size change  # caption : 8 x 22 x 1
 
-                print("pred_text shape",pred_text.shape,"img_ids", len(img_ids))# 8 
+                #print("pred_text shape",pred_text.shape,"img_ids", len(img_ids))# 8 
                 
                 for pred_, img_id in zip(pred_text, img_ids): # total 8 batches 
                     #print(pred_.shape)
@@ -213,23 +213,24 @@ class Experiment_LSTM(object):
 
                     txt_true = []
                     for i in self.__coco_test.imgToAnns[img_id] : 
-                        caption = i['caption'].lower()
+                        caption = i['caption'].lower().split(' ')
                         #cap2tok = nltk.tokenize.word_tokenize(str(caption).lower())
                         txt_true.append(caption)
+                        cnt = cnt + 1
+
                     #1x22
-                    pred_ = self.__cap2word(pred_,self.__vocab, 22)
+                    pred_ = self.__cap2word(pred_,self.__vocab, 22)[0].split(' ')
                     
-                    print("txt_true",txt_true)
-                    print("pred_text",pred_)
+                    #print("bleu1",caption_utils.bleu1(txt_true, pred_))
+                    #print("pred",pred_)
 
                     bleu1 += caption_utils.bleu1(txt_true, pred_)
                     bleu4 += caption_utils.bleu4(txt_true, pred_)
-                    break
-                
+
         test_loss = test_loss / len(self.__test_loader)
         
-        bleu1 = bleu1 / len(self.__test_loader) 
-        bleu4 = bleu4 / len(self.__test_loader)        
+        bleu1 = bleu1 /cnt
+        bleu4 = bleu4  /cnt   
 
 
         result_str = "Test Performance: Loss: {}, Bleu1: {}, Bleu4: {}".format(test_loss, bleu1, bleu4)
@@ -295,12 +296,12 @@ class Experiment_LSTM(object):
                 #rint(word_id)
                 word = vocab.idx2word[word_id]
                 if word == "<start>":
-                    print("find start!")
+                    #rint("find start!")
                     words = []
                     continue
                 if word == "<end>":
                     sentence = ' '.join(words)
-                    sentence = sentence.lower()
+                    #sentence = sentence.lower()
                     batch_caption.append(sentence)
                     words = []
                     break
@@ -309,9 +310,11 @@ class Experiment_LSTM(object):
                 #debug for max
                 if(len(words) == 22):
                     print('max')
-                    sentence = ' '.join(words).lower()
+                    sentence = ' '.join(words)
                     batch_caption.append(sentence)
                     words = []
+
+        #batch_caption = nltk.tokenize.word_tokenize(str(batch_caption).lower())
 
         return batch_caption
     
