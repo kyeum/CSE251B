@@ -1,232 +1,336 @@
-from torchvision import models
-import torch.nn as nn
-from constants import *
+################################################################################
+# CSE 253: Programming Assignment 4
+# Code snippet by Ajit Kumar, Savyasachi
+# Fall 2020
+################################################################################
+
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
-from torch.nn.utils.rnn import pack_padded_sequence
+import nltk
+from datetime import datetime
+import caption_utils
+from constants import ROOT_STATS_DIR, BOS_TOK, EOS_TOK
+from dataset_factory import get_datasets
+from file_utils import *
+from model_factory import get_model
 
-
+# Class to encapsulate a neural experiment.
+# The boilerplate code to setup the experiment, log stats, checkpoints and plotting have been provided to you.
+# You only need to implement the main training logic of your experiment and implement train, val and test methods.
+# You are free to modify or restructure the code as per your convenience.
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-print("MODELS - DEVICE:", device)
-import torch.utils.data as data
 
-class LSTM(nn.Module):
-    def __init__(self, encoder, decoder, device):
-        super(LSTM, self).__init__()
-        encoder.to(device)
-        self.encoder = encoder
-        decoder.to(device)
-        self.decoder = decoder
-    
-    def forward(self, images, captions):
-        inference = False
-        if captions is None:
-            inference = True
-        
-        encoded_images = self.encoder(images)
 
-        
-        if inference:
-            #word_seq = self.decoder.generate_caption(encoded_images, sampling_mode=STOCHASTIC, max_seq_len=20, end_at_eos=True)
-            word_seq = self.decoder.generate_caption_ey(encoded_images,sampling_mode=STOCHASTIC, max_seq_len=22,temperature = 0.1)
+class Experiment_LSTM(object):
+    def __init__(self, name):
+        config_data = read_file_in_dir('./', name + '.json')
+        if config_data is None:
+            raise Exception("Configuration file doesn't exist: ", name)
 
-            return word_seq
+        self.__name = config_data['experiment_name']
+        self.__experiment_dir = os.path.join(ROOT_STATS_DIR, self.__name)
+
+        # Load Datasets
+        self.__coco_test, self.__vocab, self.__train_loader, self.__val_loader, self.__test_loader = get_datasets(
+            config_data)
+
+        # Setup Experiment
+        self.__generation_config = config_data['generation']
+        self.__epochs = config_data['experiment']['num_epochs']
+        self.__lr = config_data['experiment']['learning_rate']
+        self.__current_epoch = 0
+        self.__training_losses = []
+        self.__val_losses = []
+        self.__best_model = None  # Save your best model in this field and use this in test method.
+        self.__best_val_loss = float('inf')
+
+        # Init Model
+        self.__model = get_model(config_data, self.__vocab)
+
+        # TODO: Set these Criterion and Optimizers Correctly
+        self.__criterion = torch.nn.CrossEntropyLoss()
+        self.__optimizer = torch.optim.Adam(self.__model.parameters(), lr=self.__lr)
+
+        self.__init_model()
+
+        # Load Experiment Data if available
+        #self.__load_experiment()
+
+    # Loads the experiment data if exists to resume training from last saved checkpoint.
+    def __load_experiment(self):
+        os.makedirs(ROOT_STATS_DIR, exist_ok=True)
+
+        if os.path.exists(self.__experiment_dir):
+            self.__training_losses = read_file_in_dir(self.__experiment_dir, 'training_losses.txt')
+            self.__val_losses = read_file_in_dir(self.__experiment_dir, 'val_losses.txt')
+            self.__current_epoch = len(self.__training_losses)
+
+            state_dict = torch.load(os.path.join(self.__experiment_dir, 'latest_model.pt'))
+            self.__model.load_state_dict(state_dict['model'])
+            self.__optimizer.load_state_dict(state_dict['optimizer'])
+
         else:
-            out = self.decoder(encoded_images, captions)
-        
-        return out
-        
-class LSTMEncoder(nn.Module):
-    def __init__(self, image_embedding_size=300):
-        super(LSTMEncoder, self).__init__()
-        ### Encoder
-        '''
-        self.encoder = models.resnet50(pretrained=True)
-        ## Feature Extraction
-        # Freeze all layers of pretrained encoder.
-        for param in self.encoder.parameters():
-            param.requires_grad = False
-        fc_in_features = self.encoder.fc.in_features
-        # Replace last layer with weight layer to embedding dimension.
-        # Don't need to unfreeze as new linear layer has grads enabled.
-        self.encoder.fc = nn.Linear(fc_in_features, image_embedding_size)
-        '''
-        hidden_size = 512
- 
-        self.model = models.resnet50(pretrained=True)
-#         self.fc_in_feature = self.model.fc.in_features
-        
-        layers = list(self.model.children())
-        layers = layers[:-2]
-        self.encoder = nn.Sequential(*layers)
-        for param in self.encoder.parameters():
-            param.requires_grad = False           
+            os.makedirs(self.__experiment_dir)
 
+    def __init_model(self):
+        if torch.cuda.is_available():
+            self.__model = self.__model.cuda().float()
+            self.__criterion = self.__criterion.cuda()
 
-        self.linear = nn.Linear(in_features=2048 * 8 * 8, out_features=image_embedding_size, bias=True)
-        self.batch_norm = nn.BatchNorm1d(image_embedding_size, momentum=0.01)
+    # Main method to run your experiment. Should be self-explanatory.
+    def run(self):
+        print("In training loop...")
+        start_epoch = self.__current_epoch
+        for epoch in range(start_epoch, self.__epochs):  # loop over the dataset multiple times
+            print("epoch:", epoch)
+            start_time = datetime.now()
+            self.__current_epoch = epoch
+            train_loss = self.__train()
+            val_loss = self.__val().cpu().item()
+            self.__record_stats(train_loss, val_loss)
+            self.__log_epoch_stats(start_time)
+            self.__save_model() # latest model only
+        print("Finished training!")
 
-    def forward(self, images):
-        """
-        Input = Batch_size x Image_height x Image_width
-        Output = Batch_size x Image_embedding_size
-        """
-        encoded_images = self.encoder(images)
-#         print("encoded_img:", encoded_images.shape)
-        encoded_images = encoded_images.reshape(encoded_images.size(0), -1)
-        encoded_images = self.linear(encoded_images)
-        encoded_images = self.batch_norm(encoded_images)
-        return encoded_images    
-    
-    
-    
-class LSTMDecoder(nn.Module):
-    def __init__(self, vocab_size=-1, eos_tok_index=-1, hidden_size=512, word_embedding_size=300, num_layers=2, max_seq_len=22):
-        super(LSTMDecoder, self).__init__()
+    def onehot_captions(self, captions):
+        return torch.nn.functional.one_hot(captions, num_classes=len(self.__vocab))
         
-        # input: (N, L, H_in) = batch_size x seq_len x input_size
-        # output: (N, L, D * H_out) = batch_size x seq_len, proj_size) 
-        #     [here proj_size=hidden_size]
-        # proj_size cannot be passed as hidden_size! 
-        self.hidden_size = hidden_size
-        self.decoder = nn.LSTM(input_size=word_embedding_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=True)
+    # TODO: Perform one training iteration on the whole dataset and return loss value
+    def __train(self):
+        self.__model.train()
+        training_loss = 0
 
-        ### Given a vocab word index, returns the word embedding
-        # Input: (*) indices of embedding
-        # Output: (*, H) where * is input shape and H = embedding_dim
-        self.vocab2wordEmbed = nn.Embedding(num_embeddings=vocab_size, embedding_dim=word_embedding_size)
-        self.num_layers = num_layers
-        # Converts from LSTM output to vocab size
-        self.decoder2vocab = nn.Linear(hidden_size, vocab_size)
+        for i, (images, captions,_) in enumerate(self.__train_loader):
+            images = images.to(device)
+            captions = captions.to(device)
+            self.__optimizer.zero_grad()
+            y = self.__model(images,captions)
+            # y : 8x 22 x vocab -> permute 8 x vocab x 22
+            
+            y = y.permute(0,2,1) # batch size change  # caption : 8 x 22 
+            # TODO : caption start from 1 - end, y start from 0 : end -1? for LSTM ???? IG???? 
+            
+            #captions = captions[:,1:]
+            #y = y[:, :, :-1]
+            
+            
+            loss = self.__criterion(y, captions)
+            training_loss += loss.item()
+            loss.backward()
+            self.__optimizer.step()
+            if i % 100 == 1 : 
+                train_str = "Epoch: {}, Batch: {} train_loss: {}".format(self.__current_epoch+1,i,loss)
+                self.__log(train_str)
+        training_loss = training_loss/len(self.__train_loader)
+      
         
-        # Softmax
-        self.softmax = nn.Softmax(dim=2)
-        
-        self.max_seq_len = max_seq_len
-        
-        # Constants
-        self.EOS_TOK_INDEX = eos_tok_index;
-        
-    
-    def initHidden(self):
-        return torch.zeros(1, 1, self.hidden_size, device=device)
-    
-    # encoded_caption is in form of vocab word indices
-    def forward(self, encoded_image, captions):
-    
-        encoded_image = encoded_image.unsqueeze(1)
-        # TODO: add case when captions is empty
-        caption_embeddings = self.vocab2wordEmbed(captions)
-        
-#         print("caption_embed.shape:", caption_embeddings.shape)
-        
-        batch_size = encoded_image.shape[0]
-        h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size, device=device)
-        c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size, device=device)
-        initial_hidden_states = (h0, c0)
-        
-        
-        # TODO: Initialize our LSTM with the image encoder output to bias our prediction.
-        temp, image_hidden_states = self.decoder(encoded_image, initial_hidden_states)
-        # TODO: Weight initialization
-#         print("temp.shape:", temp.shape)
-        
-        # Get output and hidden states
-        out, hidden = self.decoder(caption_embeddings, image_hidden_states)
-#         print("out1:", out.shape)
+        return training_loss
+            
 
-        temp = self.decoder2vocab(temp)
-        out = self.decoder2vocab(out)
-        out = out[:, :-1, :]
-#         print("temp.shape:", temp.shape)
-#         print("out.shape:", out.shape)
+    # TODO: Perform one Pass on the validation set and return loss value. You may also update your best model here.
+    def __val(self):
+        self.__model.eval()
+        val_loss = 0
+        bleu4 = 0
 
-        # Concatenate in sequence axis (1)
-        out = torch.cat([temp, out], dim=1)
-        
-        # Get probabilities of each word
-#         out = self.softmax(out)
-        #print("out.shape:", out.shape)
-
-        
-        return out # shape: batch_size x seq_len x vocab_size
-        
-    # Inference
-    '''
-    def generate_caption(self, encoded_image, sampling_mode=STOCHASTIC, max_seq_len = 22,end_at_eos=True):
-        """
-        Sampling_mode = 0 deterministic
-                      = 1 stochastic
-        """
-        word_seq = [] # indices of words
-        
-        for i in range(self.max_seq_len):
-            out = self.forward(encoded_image, word_seq)
-            # Get word indice based on sampling_mode
-            if sampling_mode == DETERMINISTIC:
-                wordIndice = out[2].argmax()
-                word_seq.append(wordIndice)
-            else:
-                gen_word_index = torch.multinomial(input=out, num_samples=1, replacement=False)
-                word_seq.append(gen_word_index)
+        with torch.no_grad():
+            for i, (images, captions, img_ids) in enumerate(self.__val_loader):
+                images = images.to(device)
+                captions = captions.to(device)
+                y = self.__model(images, captions)                
+                y = y.permute(0,2,1) # batch size change  # caption : 8 x 22 
                 
-            if end_at_eos and wordIndice == self.EOS_TOK_INDEX:
-                return word_seq
-            
-        return word_seq
-    ''' 
+                
+                
+                
+                #captions = captions[:,1:]
+                #y = y[:, :, :-1]
+                
+                loss = self.__criterion(y, captions)
+                val_loss += loss
+                #print("cpation", self.__model(images, None)) 
+                
+                
+                pred_text = self.__model(images, None)                
+
+                #print('y, shape_pred, shape_target',y.shape, pred_text.shape,captions.shape)
+                
+
+                
+                if i % 100 == 1 : 
+                    valid_str = "Epoch: {}, Batch: {} valid_loss: {}".format(self.__current_epoch+1,i,loss)
+                    self.__log(valid_str) 
+                    
+            val_loss = val_loss/len(self.__val_loader)                       
+
+            if(val_loss < self.__best_val_loss):
+                self.__best_val_loss = val_loss
+                print("Saving the model in {} epochs".format(self.__current_epoch+1))
+                self.__best_model = self.__model
+                self.__save_model(name = 'best_model4')                    
+
+
+                  
+        return val_loss
+
+    # TODO: Implement your test function here. Generate sample captions and evaluate loss and
+    #  bleu scores using the best model. Use utility functions provided to you in caption_utils.
+    #  Note than you'll need image_ids and COCO object in this case to fetch all captions to generate bleu scores.
+    def test(self):
+        state_dict = torch.load(os.path.join(self.__experiment_dir, 'best_model4'))
+        self.__model.load_state_dict(state_dict['model'])
+        self.__optimizer.load_state_dict(state_dict['optimizer'])
+        self.__model.eval()
+        
+        test_loss = 0
+        bleu1 = 0
+        bleu4 = 0
+        pred_text = []
+        cnt = 0;
+        with torch.no_grad():
+            for iter, (images, captions, img_ids) in enumerate(self.__test_loader):
+                images = images.to(device)
+                captions = captions.to(device)
+                y = self.__model(images, captions)  
+
+                y = y.permute(0,2,1) # batch size change  # caption : 8 x 22 
+                
+                #captions = captions[:,1:]
+                #y = y[:, :, :-1]     
+                
+                loss = self.__criterion(y, captions)                
+                test_loss += loss
+
+                # TODO: probably need to pad output to match true_size
+                pred_text =  self.__model(images,None) # 8 x 22 x 1
+                #print(pred_text.shape)                 #
+                
+                #pred_text = pred_text.permute(0,2,1) # batch size change  # caption : 8 x 22 x 1
+
+                #print("pred_text shape",pred_text.shape,"img_ids", len(img_ids))# 8 
+                
+                for pred_, img_id in zip(pred_text, img_ids): # total 8 batches 
+                    #print(pred_.shape)
+                    #break
+
+                    txt_true = []
+                    for i in self.__coco_test.imgToAnns[img_id] : 
+                        caption = i['caption'].lower()
+                        cap2tok = nltk.tokenize.word_tokenize(str(caption).lower())
+                        txt_true.append(cap2tok)
+                        
+                    cnt = cnt + 1
+                    #1x22
+                    pred_ = self.__cap2word(pred_,self.__vocab, 22)[0].split(' ')
+                    
+                    #print("bleu1",caption_utils.bleu1(txt_true, pred_))
+                    #print("pred",pred_)
+
+                    bleu1 += caption_utils.bleu1(txt_true, pred_)
+                    bleu4 += caption_utils.bleu4(txt_true, pred_)
+
+        test_loss = test_loss / len(self.__test_loader)
+        
+        bleu1 = bleu1 /cnt
+        bleu4 = bleu4  /cnt   
+
+
+        result_str = "Test Performance: Loss: {}, Bleu1: {}, Bleu4: {}".format(test_loss, bleu1, bleu4)
+        self.__log(result_str)
+
+        return test_loss, bleu1, bleu4
+
+    def __save_model(self, name = 'latest_model.pt'):
+        root_model_path = os.path.join(self.__experiment_dir, name)
+        model_dict = self.__model.state_dict()
+        state_dict = {'model': model_dict, 'optimizer': self.__optimizer.state_dict()}
+        torch.save(state_dict, root_model_path)
+
+    def __record_stats(self, train_loss, val_loss):
+        self.__training_losses.append(train_loss)
+        self.__val_losses.append(val_loss)
+
+        self.plot_stats()
+
+        write_to_file_in_dir(self.__experiment_dir, 'training_losses.txt', self.__training_losses)
+        write_to_file_in_dir(self.__experiment_dir, 'val_losses.txt', self.__val_losses)
+
+    def __log(self, log_str, file_name=None):
+        print(log_str)
+        log_to_file_in_dir(self.__experiment_dir, 'all.log', log_str)
+        if file_name is not None:
+            log_to_file_in_dir(self.__experiment_dir, file_name, log_str)
+
+    def __log_epoch_stats(self, start_time):
+        time_elapsed = datetime.now() - start_time
+        time_to_completion = time_elapsed * (self.__epochs - self.__current_epoch - 1)
+        train_loss = self.__training_losses[self.__current_epoch]
+        val_loss = self.__val_losses[self.__current_epoch]
+        summary_str = "Epoch: {}, Train Loss: {}, Val Loss: {}, Took {}, ETA: {}\n"
+        summary_str = summary_str.format(self.__current_epoch + 1, train_loss, val_loss, str(time_elapsed),
+                                         str(time_to_completion))
+        self.__log(summary_str, 'epoch.log')
+
+    def plot_stats(self):
+        e = len(self.__training_losses)
+        x_axis = np.arange(1, e + 1, 1)
+        plt.figure()
+        plt.plot(x_axis, self.__training_losses, label="Training Loss")
+        plt.plot(x_axis, self.__val_losses, label="Validation Loss")
+        plt.xlabel("Epochs")
+        plt.legend(loc='best')
+        plt.title(self.__name + " Stats Plot")
+        plt.savefig(os.path.join(self.__experiment_dir, "stat_plot.png"))
+        plt.show()
+        
+    def __cap2word(self,caption, vocab, max_count=23):
+        """
+            Here, we generate the text caption for the given batch of images
+        """
+        batch_caption = []
+        words = []
   
-    def generate_caption_ey(self, encoded_image,states=None,sampling_mode=STOCHASTIC, max_seq_len=22, temperature = 1):
-        start_input = torch.ones((encoded_image.shape[0], 1)).long().to('cuda')
-        # USE index instead of <start> -> not efficient!! #torch.tensor(1).to('cuda') # this is the '<start>'
+        img_caption = caption.cpu().numpy()
+        #rint(img_caption)
         
-        start_input = self.vocab2wordEmbed(start_input)
+        for word_ids in img_caption:    
+            for word_id in word_ids:
+                #rint(word_id)
+                word = vocab.idx2word[word_id]
+                if word == "<start>":
+                    #rint("find start!")
+                    words = []
+                    continue
+                if word == "<end>":
+                    sentence = ' '.join(words)
+                    sentence = sentence.lower()
+                    batch_caption.append(sentence)
+                    words = []
+                    break
 
-        encoded_image = encoded_image.unsqueeze(1)
-        lstm_input = encoded_image
-        caption_txt = []   
+                words.append(word)
+                #debug for max
+                if(len(words) == 22):
+                    print('max')
+                    sentence = ' '.join(words).lower()
+                    batch_caption.append(sentence)
+                    words = []
 
-        batch_size = encoded_image.shape[0]
-        h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size, device=device)
-        c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size, device=device)
-        initial_hidden_states = (h0, c0)
-        #print("LSTM_INPUT:SHAPE:", lstm_input.shape)
-        temp,imh_hidden_states = self.decoder(lstm_input, initial_hidden_states)
-        
-        #print('tempBEF',temp.shape)
-        _,temp = self.decoder2vocab(temp).max(2)
-        #temp = torch.unsqueeze(temp, 1)
-        #print('tempBEF',temp.shape)
-        temp = self.vocab2wordEmbed(temp)
-        #print('tempAFT',temp.shape)
-        
-        #temp = start_input
-        for i in range(max_seq_len):
-            #print(f'i:{i}, imh_shape:{imh_hidden_states[0].shape}')
-            #print(f'i:{i}, temp:{temp.shape}')
-
-            output,imh_hidden_states = self.decoder(temp, imh_hidden_states)
-            output = self.decoder2vocab(output)
-
-            if sampling_mode == STOCHASTIC : 
-#                 print("--STOCHASTIC--")
-                output = self.softmax(output/temperature)
-#                 print("output.shape:", output.shape)
-                predicted = torch.multinomial(input=output.squeeze(1), num_samples=1, replacement=False)
-#                 print("predicted.shape:", predicted.shape)
-                # 64, 1
-
-            else:
-                #output = self.softmax(output)
-                #print(output)                
-                _, predicted = output.max(2)
-                #print(predicted)                
-
-            caption_txt.append(predicted)
-            
-            temp = self.vocab2wordEmbed(predicted)
-#            temp = torch.unsqueeze(temp, 1)
-
-            
-        caption_txt = torch.stack(caption_txt, 1)
-        return caption_txt
+        return batch_caption
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
