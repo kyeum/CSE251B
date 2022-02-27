@@ -27,7 +27,7 @@ class LSTM(nn.Module):
         
         if inference:
             #word_seq = self.decoder.generate_caption(encoded_images, sampling_mode=STOCHASTIC, max_seq_len=20, end_at_eos=True)
-            word_seq = self.decoder.generate_caption_ey(encoded_images,sampling_mode=STOCHASTIC, max_seq_len=22,temperature = 1)
+            word_seq = self.decoder.generate_caption_ey(encoded_images,sampling_mode=STOCHASTIC, max_seq_len=22,temperature = 0.1)
 
             return word_seq
         else:
@@ -41,14 +41,11 @@ class LSTMEncoder(nn.Module):
         ### Encoder
         '''
         self.encoder = models.resnet50(pretrained=True)
-
         ## Feature Extraction
         # Freeze all layers of pretrained encoder.
         for param in self.encoder.parameters():
             param.requires_grad = False
-
         fc_in_features = self.encoder.fc.in_features
-
         # Replace last layer with weight layer to embedding dimension.
         # Don't need to unfreeze as new linear layer has grads enabled.
         self.encoder.fc = nn.Linear(fc_in_features, image_embedding_size)
@@ -56,16 +53,16 @@ class LSTMEncoder(nn.Module):
         hidden_size = 512
  
         self.model = models.resnet50(pretrained=True)
-        self.fc_in_feature = self.model.fc.in_features
+#         self.fc_in_feature = self.model.fc.in_features
         
         layers = list(self.model.children())
-        layers = layers[:-1]
+        layers = layers[:-2]
         self.encoder = nn.Sequential(*layers)
         for param in self.encoder.parameters():
             param.requires_grad = False           
 
 
-        self.linear = nn.Linear(in_features=self.fc_in_feature, out_features=image_embedding_size, bias=True)
+        self.linear = nn.Linear(in_features=2048 * 8 * 8, out_features=image_embedding_size, bias=True)
         self.batch_norm = nn.BatchNorm1d(image_embedding_size, momentum=0.01)
 
     def forward(self, images):
@@ -74,6 +71,7 @@ class LSTMEncoder(nn.Module):
         Output = Batch_size x Image_embedding_size
         """
         encoded_images = self.encoder(images)
+#         print("encoded_img:", encoded_images.shape)
         encoded_images = encoded_images.reshape(encoded_images.size(0), -1)
         encoded_images = self.linear(encoded_images)
         encoded_images = self.batch_norm(encoded_images)
@@ -135,12 +133,18 @@ class LSTMDecoder(nn.Module):
         # Get output and hidden states
         out, hidden = self.decoder(caption_embeddings, image_hidden_states)
 #         print("out1:", out.shape)
-        
+
+        temp = self.decoder2vocab(temp)
         out = self.decoder2vocab(out)
+        out = out[:, :-1, :]
+#         print("temp.shape:", temp.shape)
 #         print("out.shape:", out.shape)
+
+        # Concatenate in sequence axis (1)
+        out = torch.cat([temp, out], dim=1)
         
         # Get probabilities of each word
-        #$out = self.softmax(out)
+#         out = self.softmax(out)
         #print("out.shape:", out.shape)
 
         
@@ -195,8 +199,7 @@ class LSTMDecoder(nn.Module):
         temp = self.vocab2wordEmbed(temp)
         #print('tempAFT',temp.shape)
         
-        temp = start_input
-        
+        #temp = start_input
         for i in range(max_seq_len):
             #print(f'i:{i}, imh_shape:{imh_hidden_states[0].shape}')
             #print(f'i:{i}, temp:{temp.shape}')
@@ -205,7 +208,7 @@ class LSTMDecoder(nn.Module):
             output = self.decoder2vocab(output)
 
             if sampling_mode == STOCHASTIC : 
-                #print("--STOCHASTIC--")
+#                 print("--STOCHASTIC--")
                 output = self.softmax(output/temperature)
 #                 print("output.shape:", output.shape)
                 predicted = torch.multinomial(input=output.squeeze(1), num_samples=1, replacement=False)
@@ -226,5 +229,4 @@ class LSTMDecoder(nn.Module):
             
         caption_txt = torch.stack(caption_txt, 1)
         return caption_txt
-    
     
