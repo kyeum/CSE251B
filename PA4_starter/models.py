@@ -56,16 +56,16 @@ class LSTMEncoder(nn.Module):
         hidden_size = 512
  
         self.model = models.resnet50(pretrained=True)
-        self.fc_in_feature = self.model.fc.in_features
+#         self.fc_in_feature = self.model.fc.in_features
         
         layers = list(self.model.children())
-        layers = layers[:-1]
+        layers = layers[:-2]
         self.encoder = nn.Sequential(*layers)
         for param in self.encoder.parameters():
             param.requires_grad = False           
 
 
-        self.linear = nn.Linear(in_features=self.fc_in_feature, out_features=image_embedding_size, bias=True)
+        self.linear = nn.Linear(in_features=2048 * 8 * 8, out_features=image_embedding_size, bias=True)
         self.batch_norm = nn.BatchNorm1d(image_embedding_size, momentum=0.01)
 
     def forward(self, images):
@@ -74,6 +74,7 @@ class LSTMEncoder(nn.Module):
         Output = Batch_size x Image_embedding_size
         """
         encoded_images = self.encoder(images)
+#         print("encoded_img:", encoded_images.shape)
         encoded_images = encoded_images.reshape(encoded_images.size(0), -1)
         encoded_images = self.linear(encoded_images)
         encoded_images = self.batch_norm(encoded_images)
@@ -135,9 +136,14 @@ class LSTMDecoder(nn.Module):
         # Get output and hidden states
         out, hidden = self.decoder(caption_embeddings, image_hidden_states)
 #         print("out1:", out.shape)
-        
+
+        temp = self.decoder2vocab(temp)
         out = self.decoder2vocab(out)
+#         print("temp.shape:", temp.shape)
 #         print("out.shape:", out.shape)
+
+        # Concatenate in sequence axis (1)
+        out = torch.cat([temp, out], dim=1)
         
         # Get probabilities of each word
 #         out = self.softmax(out)
@@ -204,7 +210,7 @@ class LSTMDecoder(nn.Module):
             output = self.decoder2vocab(output)
 
             if sampling_mode == STOCHASTIC : 
-                print("--STOCHASTIC--")
+#                 print("--STOCHASTIC--")
                 output = self.softmax(output/temperature)
 #                 print("output.shape:", output.shape)
                 predicted = torch.multinomial(input=output.squeeze(1), num_samples=1, replacement=False)

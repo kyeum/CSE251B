@@ -89,8 +89,8 @@ class Experiment_LSTM(object):
             train_loss = self.__train()
             val_loss = self.__val().cpu().item()
             # TODO FIX
-            print("train_loss:", train_loss)
-            print("valid_loss:", val_loss)
+#             print("train_loss:", train_loss)
+#             print("valid_loss:", val_loss)
 #             if isinstance(val_loss, torch.Tensor):
 #                 val_loss = val_loss.cpu().numpy()
             self.__record_stats(train_loss, val_loss)
@@ -107,17 +107,20 @@ class Experiment_LSTM(object):
         training_loss = 0
 
         for i, (images, captions,_) in enumerate(self.__train_loader):
-            if i == 10:
-                break
+#             if i == 10:
+#                 break
+            # CONCAT START TOK TO 
             images = images.to(device)
             captions = captions.to(device)
             self.__optimizer.zero_grad()
             y = self.__model(images,captions)
             # y : 8x 22 x vocab -> permute 8 x vocab x 22
-            
-            y = y.permute(0,2,1) # batch size change  # caption : 8 x 22 
+            y = y.permute(0,2,1)
             # TODO : caption start from 1 - end, y start from 0 : end -1? for LSTM ???? IG???? 
-            
+            # DONT PASS IN LAST GENERATED TOK
+            y = y[:, :, :-1]
+#             print("y.shape:", y.shape)
+#             print("captions.shape:", captions.shape)
             loss = self.__criterion(y, captions)
             training_loss += loss.item()
             loss.backward()
@@ -154,7 +157,7 @@ class Experiment_LSTM(object):
                 
                 if(val_loss < self.__best_val_loss):
                     self.__best_val_loss = val_loss
-                    cur_model="best_model4"
+                    cur_model="best_model"
                     print("Saving:", cur_model)
                     print("Saving the model in {} epochs".format(self.__current_epoch+1))
                     self.__best_model = self.__model
@@ -174,7 +177,7 @@ class Experiment_LSTM(object):
     #  Note than you'll need image_ids and COCO object in this case to fetch all captions to generate bleu scores.
     def test(self):
         print("In Test, loading model...")
-        state_dict = torch.load(os.path.join(self.__experiment_dir, 'best_model3'))
+        state_dict = torch.load(os.path.join(self.__experiment_dir, 'best_model'))
         self.__model.load_state_dict(state_dict['model'])
         self.__optimizer.load_state_dict(state_dict['optimizer'])
         self.__model.eval()
@@ -201,7 +204,7 @@ class Experiment_LSTM(object):
                 
                 pred_text = pred_text.permute(0,2,1) # batch size change  # caption : 8 x 22 x 1
                 
-                print("pred_text shape", pred_text.shape,"img_ids", len(img_ids))# 8 
+#                 print("pred_text shape", pred_text.shape,"img_ids", len(img_ids))# 8 
                 # 64, 1, 22
                 for pred_, img_id in zip(pred_text, img_ids): # total 8 batches 
                     #print(pred_.shape)
@@ -210,7 +213,7 @@ class Experiment_LSTM(object):
 
                     txt_true = []
                     for i in self.__coco_test.imgToAnns[img_id] : 
-                        caption = i['caption'].lower()
+                        caption = i['caption'].lower().split(' ')
                         #cap2tok = nltk.tokenize.word_tokenize(str(caption).lower())
                         txt_true.append(caption)
                     # true text! 
@@ -227,8 +230,8 @@ class Experiment_LSTM(object):
                 
         test_loss = test_loss / len(self.__test_loader)
         
-        bleu1 = bleu1 / len(self.__test_loader) 
-        bleu4 = bleu4 / len(self.__test_loader)        
+        bleu1 = bleu1 / len(self.__test_loader) / len(img_ids)
+        bleu4 = bleu4 / len(self.__test_loader) / len(img_ids)
 
 
         result_str = "Test Performance: Loss: {}, Bleu1: {}, Bleu4: {}".format(test_loss, bleu1, bleu4)
@@ -287,31 +290,28 @@ class Experiment_LSTM(object):
         batch_caption = []
   
         img_caption = caption.cpu().numpy()
-        print("img_cap:", img_caption.shape)
-        print("img_cap:", img_caption)
+#         print("img_cap:", img_caption.shape)
+#         print("img_cap:", img_caption)
         words = []
         for word_id in img_caption[0]:    
-            print("word_id:", word_id)
+#             print("word_id:", word_id)
             word = vocab.idx2word[word_id]
-            print("word:", word)
-            if word == "<start>":
+#             print("word:", word)
+#             if word == "<start>":
+# #                 words = []
+#                 continue
+#             if word == "<end>":
+#                 batch_caption.append(words)
 #                 words = []
-                continue
-            if word == "<end>":
-                sentence = ' '.join(words)
-                sentence = sentence.lower()
-                batch_caption.append(sentence)
-                words = []
-                break
+#                 break
 
             words.append(word)
             #debug for max
             if(len(words) == 22):
                 print('max')
-
-                sentence = ' '.join(words).lower()
-                batch_caption.append(sentence)
+                batch_caption = batch_caption + words
                 words = []
+                break
 
                 
         return batch_caption
