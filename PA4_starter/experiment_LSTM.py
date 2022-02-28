@@ -55,7 +55,7 @@ class Experiment_LSTM(object):
         self.__init_model()
 
         # Load Experiment Data if available
-        #self.__load_experiment()
+        self.__load_experiment()
 
     # Loads the experiment data if exists to resume training from last saved checkpoint.
     def __load_experiment(self):
@@ -230,9 +230,9 @@ class Experiment_LSTM(object):
                     bleu1 += caption_utils.bleu1(txt_true, pred_)
                     bleu4 += caption_utils.bleu4(txt_true, pred_)
 
-        test_loss = test_loss / len(self.__test_loader)
+        test_loss = test_loss / cnt
         
-        bleu1 = bleu1 /cnt
+        bleu1 = bleu1 / cnt
         bleu4 = bleu4  /cnt   
 
 
