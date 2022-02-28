@@ -45,7 +45,7 @@ def get_model_LSTM(config_data, vocab, DEBUG=True):
     EOS_TOK_INDEX = vocab(EOS_TOK)
     
     decoder = LSTMDecoder(vocab_size=vocab_size, eos_tok_index=EOS_TOK_INDEX, hidden_size=hidden_size, word_embedding_size=embedding_size, num_layers=num_layers, max_seq_len=max_seq_len)
-    model = LSTM(encoder, decoder, device)
+    model = LSTM(config_data, encoder, decoder, device)
         
     return model
 

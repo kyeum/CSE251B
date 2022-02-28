@@ -12,12 +12,12 @@ import numpy as np
 import nltk
 from PIL import Image
 from pycocotools.coco import COCO
-
+import random
 
 class CocoDataset(data.Dataset):
     """COCO Custom Dataset compatible with torch.utils.data.DataLoader."""
 
-    def __init__(self, root, json, ids, vocab, img_size, transform=None):
+    def __init__(self, root, json, ids, vocab, img_size, transform=None, train=False):
         """Set the path for images, captions and vocabulary wrapper.
 
         Args:
@@ -47,6 +47,12 @@ class CocoDataset(data.Dataset):
         img_id = coco.anns[ann_id]['image_id']
         path = coco.loadImgs(img_id)[0]['file_name'];
         image = Image.open(os.path.join(self.root, path)).convert('RGB')
+        
+        if train:
+            # Randomly hflip
+            if random.random() < 0.5:
+                image = transforms.functional.hflip(image)
+            
         image = self.resize(image)
         image = self.normalize(np.asarray(image))
 

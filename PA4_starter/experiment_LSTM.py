@@ -14,6 +14,7 @@ from constants import ROOT_STATS_DIR, BOS_TOK, EOS_TOK
 from dataset_factory import get_datasets
 from file_utils import *
 from model_factory import get_model
+import re
 
 # Class to encapsulate a neural experiment.
 # The boilerplate code to setup the experiment, log stats, checkpoints and plotting have been provided to you.
@@ -168,7 +169,7 @@ class Experiment_LSTM(object):
                 self.__best_val_loss = val_loss
                 print("Saving the model in {} epochs".format(self.__current_epoch+1))
                 self.__best_model = self.__model
-                self.__save_model(name = 'best_model4')                    
+                self.__save_model(name = 'best_model')                    
 
 
                   
@@ -178,7 +179,7 @@ class Experiment_LSTM(object):
     #  bleu scores using the best model. Use utility functions provided to you in caption_utils.
     #  Note than you'll need image_ids and COCO object in this case to fetch all captions to generate bleu scores.
     def test(self):
-        state_dict = torch.load(os.path.join(self.__experiment_dir, 'best_model4'))
+        state_dict = torch.load(os.path.join(self.__experiment_dir, 'best_model'))
         self.__model.load_state_dict(state_dict['model'])
         self.__optimizer.load_state_dict(state_dict['optimizer'])
         self.__model.eval()
@@ -216,10 +217,14 @@ class Experiment_LSTM(object):
 
                     txt_true = []
                     for i in self.__coco_test.imgToAnns[img_id] : 
+#                         caption = i['caption'].lower()
+#                         cap2tok = nltk.tokenize.word_tokenize(str(caption).lower())
+#                         txt_true.append(cap2tok)
                         caption = i['caption'].lower()
-                        cap2tok = nltk.tokenize.word_tokenize(str(caption).lower())
+                        caption = re.sub(r'[^\w\s]', '', caption)
+                        cap2tok = nltk.tokenize.word_tokenize(caption)
                         txt_true.append(cap2tok)
-                        
+                
                     cnt = cnt + 1
                     #1x22
                     pred_ = self.__cap2word(pred_,self.__vocab, 22)[0].split(' ')
@@ -317,6 +322,8 @@ class Experiment_LSTM(object):
                     batch_caption.append(sentence)
                     words = []
 
+        batch_caption = [re.sub(r'(^[^\w]+)|([^\w]+$)', '', b) for b in batch_caption]
+        
         return batch_caption
     
     

@@ -10,8 +10,9 @@ print("MODELS - DEVICE:", device)
 import torch.utils.data as data
 
 class LSTM(nn.Module):
-    def __init__(self, encoder, decoder, device):
+    def __init__(self, config_data, encoder, decoder, device):
         super(LSTM, self).__init__()
+        self.config_data = config_data
         encoder.to(device)
         self.encoder = encoder
         decoder.to(device)
@@ -24,10 +25,16 @@ class LSTM(nn.Module):
         
         encoded_images = self.encoder(images)
 
-        
         if inference:
+            temperature = config_data['generation']['temperature']
+            max_len = config_data['generation']['max_length'] + 2
+            deterministic = config_data['generation']['deterministic']
+            if deterministic:
+                deterministic = DETERMINISTIC
+            else:
+                deterministic = STOCHASTIC
             #word_seq = self.decoder.generate_caption(encoded_images, sampling_mode=STOCHASTIC, max_seq_len=20, end_at_eos=True)
-            word_seq = self.decoder.generate_caption_ey(encoded_images,sampling_mode=STOCHASTIC, max_seq_len=22,temperature = 0.1)
+            word_seq = self.decoder.generate_caption_ey(encoded_images,sampling_mode=deterministic, max_seq_len=max_len,temperature=temperature)
 
             return word_seq
         else:
