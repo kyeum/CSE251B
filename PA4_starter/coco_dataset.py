@@ -37,7 +37,8 @@ class CocoDataset(data.Dataset):
 
         self.resize = transforms.Compose(
             [transforms.Resize(img_size, interpolation=2), transforms.CenterCrop(img_size)])
-
+        self.train = train
+        
     def __getitem__(self, index):
         """Returns one data pair (image and caption)."""
         coco = self.coco
@@ -48,7 +49,7 @@ class CocoDataset(data.Dataset):
         path = coco.loadImgs(img_id)[0]['file_name'];
         image = Image.open(os.path.join(self.root, path)).convert('RGB')
         
-        if train:
+        if self.train:
             # Randomly hflip
             if random.random() < 0.5:
                 image = transforms.functional.hflip(image)

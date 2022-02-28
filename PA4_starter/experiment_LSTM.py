@@ -247,6 +247,7 @@ class Experiment_LSTM(object):
         return test_loss, bleu1, bleu4
 
     def test(self, temperature):
+        print("Testing:", temperature)
         state_dict = torch.load(os.path.join(self.__experiment_dir, 'best_model'))
         self.__model.load_state_dict(state_dict['model'])
         self.__optimizer.load_state_dict(state_dict['optimizer'])

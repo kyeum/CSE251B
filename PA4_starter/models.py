@@ -26,9 +26,9 @@ class LSTM(nn.Module):
         encoded_images = self.encoder(images)
 
         if inference:
-            temperature = config_data['generation']['temperature']
-            max_len = config_data['generation']['max_length'] + 2
-            deterministic = config_data['generation']['deterministic']
+            temperature = self.config_data['generation']['temperature']
+            max_len = self.config_data['generation']['max_length'] + 2
+            deterministic = self.config_data['generation']['deterministic']
             if deterministic:
                 deterministic = DETERMINISTIC
             else:
