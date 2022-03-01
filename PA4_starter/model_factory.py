@@ -5,7 +5,7 @@
 ################################################################################
 from torchvision import models
 import torch.nn as nn
-from models import MODEL, Encoder, LSTMDecoder
+from models import MODEL, Encoder, LSTMDecoder, vRNNDecoder
 import torch
 
 

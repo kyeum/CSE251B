@@ -282,7 +282,7 @@ class Experiment_LSTM(object):
             
             # debug for max
             if(len(words) == max_length):
-                print('max')
+#                 print('max')
                 sentence = ' '.join(words)
                 sentence = sentence.lower()
                 batch_caption.append(sentence)

@@ -205,3 +205,80 @@ class LSTMDecoder(nn.Module):
         caption_txt = torch.stack(caption_txt, 1)
         return caption_txt
     
+    
+class vRNNDecoder(nn.Module):
+    def __init__(self, vocab_size=-1, hidden_size=512, word_embedding_size=300, num_layers=2, max_seq_len=20):
+        super(vRNNDecoder, self).__init__()
+        
+        # input: (N, L, H_in) = batch_size x seq_len x input_size
+        # output: (N, L, D * H_out) = batch_size x seq_len, proj_size) 
+        #     [here proj_size=hidden_size]
+        # proj_size cannot be passed as hidden_size! 
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.decoder = nn.RNN(input_size=word_embedding_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=True, dropout=0.5)
+
+        ### Given a vocab word index, returns the word embedding
+        # Input: (*) indices of embedding
+        # Output: (*, H) where * is input shape and H = embedding_dim
+        self.vocab2wordEmbed = nn.Embedding(num_embeddings=vocab_size, embedding_dim=word_embedding_size)
+        # Converts from LSTM output to vocab size
+        self.decoder2vocab = nn.Linear(hidden_size, vocab_size)
+        
+        # Softmax
+        self.softmax = nn.Softmax(dim=2)
+    
+    # encoded_caption is in form of vocab word indices
+    def forward(self, encoded_image, captions):
+        encoded_image = encoded_image.unsqueeze(1)
+        caption_embeddings = self.vocab2wordEmbed(captions)
+        
+        batch_size = encoded_image.shape[0]
+        h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size, device=device)
+        initial_hidden_states = h0
+        
+        
+        # Initialize our LSTM with the image encoder output to bias our prediction.
+        temp, image_hidden_states = self.decoder(encoded_image, initial_hidden_states)
+        
+        # Get output and hidden states
+        out, hidden = self.decoder(caption_embeddings, image_hidden_states)
+
+        temp = self.decoder2vocab(temp)
+        out = self.decoder2vocab(out)
+        out = out[:, :-1, :]
+
+        # Concatenate in sequence axis (1)
+        out = torch.cat([temp, out], dim=1)
+        
+        return out # shape: batch_size x seq_len x vocab_size
+  
+    def generate_caption(self, encoded_image,states=None,sampling_mode=STOCHASTIC, max_seq_len=20, temperature = 0.1):
+        caption_txt = []
+        lstm_input = encoded_image.unsqueeze(1)
+
+        batch_size = encoded_image.shape[0]
+        h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size, device=device)
+        initial_hidden_states = h0
+        temp,img_hidden_states = self.decoder(lstm_input, initial_hidden_states)
+        
+        _,temp = self.decoder2vocab(temp).max(2)
+        temp = self.vocab2wordEmbed(temp)
+        for i in range(max_seq_len):
+            output,img_hidden_states = self.decoder(temp, img_hidden_states)
+            output = self.decoder2vocab(output)
+
+            if sampling_mode == STOCHASTIC : 
+                output = self.softmax(output/temperature)
+                predicted = torch.multinomial(input=output.squeeze(1), num_samples=1)
+
+            else:
+                _, predicted = output.max(2)
+
+            caption_txt.append(predicted)
+            temp = self.vocab2wordEmbed(predicted)
+            
+        caption_txt = torch.stack(caption_txt, 1)
+        return caption_txt
+    
+    
