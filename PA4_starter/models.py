@@ -73,7 +73,7 @@ class Encoder(nn.Module):
         Output = Batch_size x Image_embedding_size
         """
         encoded_images = self.encoder(images)
-        encoded_images = encoded_images.squeeze()
+        encoded_images = encoded_images.reshape(encoded_images.size(0), -1)
         encoded_images = self.linear(encoded_images)
         encoded_images = self.batch_norm(encoded_images)
         return encoded_images    
