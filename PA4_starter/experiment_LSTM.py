@@ -103,9 +103,9 @@ class Experiment_LSTM(object):
             captions = captions.to(device)
             self.__optimizer.zero_grad()
             y = self.__model(images,captions)
-            # y : 8x 22 x vocab -> permute 8 x vocab x 22
+            # y : 8x 20 x vocab -> permute 8 x vocab x 20
             
-            y = y.permute(0,2,1) # batch size change  # caption : 8 x 22 
+            y = y.permute(0,2,1) # batch size change  # caption : 8 x 20
             # TODO : caption start from 1 - end, y start from 0 : end -1? for LSTM ???? IG???? 
             
             
@@ -132,7 +132,7 @@ class Experiment_LSTM(object):
                 images = images.to(device)
                 captions = captions.to(device)
                 y = self.__model(images, captions)                
-                y = y.permute(0,2,1) # batch size change  # caption : 8 x 22 
+                y = y.permute(0,2,1) # batch size change  # caption : 8 x 20
                 
                 loss = self.__criterion(y, captions)
                 val_loss += loss.item()
@@ -172,7 +172,7 @@ class Experiment_LSTM(object):
                 captions = captions.to(device)
                 y = self.__model(images, captions)  
 
-                y = y.permute(0,2,1) # batch size change  # caption : 8 x 22 
+                y = y.permute(0,2,1) # batch size change  # caption : 8 x 20
                 
                 loss = self.__criterion(y, captions)                
                 test_loss += loss.item()
