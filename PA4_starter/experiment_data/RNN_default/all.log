@@ -1,0 +1,62 @@
+Epoch: 1, Batch: 1 train_loss: 9.651521682739258
+Epoch: 1, Batch: 1001 train_loss: 2.0114409923553467
+Epoch: 1, Batch: 1 valid_loss: 1.9925975799560547
+Epoch: 1, Batch: 101 valid_loss: 1.6383830308914185
+Epoch: 1, Train Loss: 2.2316898305017037, Val Loss: 1.8296250233283409, Took 0:06:54.575418, ETA: 1:02:11.178762
+
+Epoch: 2, Batch: 1 train_loss: 1.707648515701294
+Epoch: 2, Batch: 1 train_loss: 1.746328353881836
+Epoch: 2, Batch: 1001 train_loss: 1.6076446771621704
+Epoch: 2, Batch: 1 valid_loss: 1.316837191581726
+Epoch: 2, Batch: 101 valid_loss: 1.734117865562439
+Epoch: 2, Train Loss: 1.78017265458987, Val Loss: 1.7016745869929975, Took 0:07:28.677662, ETA: 0:59:49.421296
+
+Epoch: 3, Batch: 1 train_loss: 2.0206458568573
+Epoch: 3, Batch: 1001 train_loss: 1.4899109601974487
+Epoch: 3, Batch: 1 valid_loss: 1.9767869710922241
+Epoch: 3, Batch: 101 valid_loss: 1.8617159128189087
+Epoch: 3, Train Loss: 1.6838470870333169, Val Loss: 1.6614625380589412, Took 0:07:13.000279, ETA: 0:50:31.001953
+
+Epoch: 4, Batch: 1 train_loss: 1.8800687789916992
+Epoch: 4, Batch: 1001 train_loss: 1.1066679954528809
+Epoch: 4, Batch: 1 valid_loss: 2.0166780948638916
+Epoch: 4, Batch: 101 valid_loss: 1.800002098083496
+Epoch: 4, Train Loss: 1.6331134389398436, Val Loss: 1.6269769636484293, Took 0:07:11.198533, ETA: 0:43:07.191198
+
+Epoch: 5, Batch: 1 train_loss: 1.2204344272613525
+Epoch: 5, Batch: 1001 train_loss: 1.954257607460022
+Epoch: 5, Batch: 1 valid_loss: 1.4319478273391724
+Epoch: 5, Batch: 101 valid_loss: 1.6452629566192627
+Epoch: 5, Train Loss: 1.604188761844144, Val Loss: 1.607148500589224, Took 0:07:33.571535, ETA: 0:37:47.857675
+
+Epoch: 6, Batch: 1 train_loss: 1.481521725654602
+Epoch: 6, Batch: 1001 train_loss: 1.5985908508300781
+Epoch: 6, Batch: 1 valid_loss: 1.6425211429595947
+Epoch: 6, Batch: 101 valid_loss: 1.661012887954712
+Epoch: 6, Train Loss: 1.570511581611224, Val Loss: 1.5850547240330624, Took 0:06:21.336946, ETA: 0:25:25.347784
+
+Epoch: 7, Batch: 1 train_loss: 1.6852405071258545
+Epoch: 7, Batch: 1001 train_loss: 1.7618926763534546
+Epoch: 7, Batch: 1 valid_loss: 1.3976505994796753
+Epoch: 7, Batch: 101 valid_loss: 1.8800206184387207
+Epoch: 7, Train Loss: 1.5512705644312845, Val Loss: 1.5801472938977754, Took 0:06:44.558697, ETA: 0:20:13.676091
+
+Epoch: 8, Batch: 1 train_loss: 1.5670193433761597
+Epoch: 8, Batch: 1001 train_loss: 1.4238420724868774
+Epoch: 8, Batch: 1 valid_loss: 1.4505044221878052
+Epoch: 8, Batch: 101 valid_loss: 1.5807276964187622
+Epoch: 8, Train Loss: 1.547893016276953, Val Loss: 1.5786469904276041, Took 0:07:40.628560, ETA: 0:15:21.257120
+
+Epoch: 9, Batch: 1 train_loss: 1.6231025457382202
+Epoch: 9, Batch: 1001 train_loss: 1.6039434671401978
+Epoch: 9, Batch: 1 valid_loss: 1.8487900495529175
+Epoch: 9, Batch: 101 valid_loss: 1.4560173749923706
+Epoch: 9, Train Loss: 1.527886605365082, Val Loss: 1.5522319261844342, Took 0:07:13.776835, ETA: 0:07:13.776835
+
+Epoch: 10, Batch: 1 train_loss: 1.23619544506073
+Epoch: 10, Batch: 1001 train_loss: 1.3870211839675903
+Epoch: 10, Batch: 1 valid_loss: 1.4266011714935303
+Epoch: 10, Batch: 101 valid_loss: 1.2048311233520508
+Epoch: 10, Train Loss: 1.5125813151633791, Val Loss: 1.5492528764101174, Took 0:07:29.966464, ETA: 0:00:00
+
+Test Performance: Loss: 0.024740701027963507, Bleu1: 63.26994953988355, Bleu4: 7.594000113752674
