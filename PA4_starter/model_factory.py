@@ -5,8 +5,7 @@
 ################################################################################
 from torchvision import models
 import torch.nn as nn
-from models import LSTM, LSTMEncoder, LSTMDecoder
-from constants import *
+from models import LSTM, Encoder, LSTMDecoder
 import torch
 
 
@@ -20,36 +19,46 @@ def get_model(config_data, vocab):
     
     if model_type == 'LSTM':
         model = get_model_LSTM(config_data, vocab)
-        if model:
-            print("Got model!")
-            return model
-        
-    # You may add more parameters if you want
+    elif model_type == 'vRNN':
+        model = get_model_vRNN(config_data, vocab)
+    
+    if model:
+        print("Got model!")
+        return model
 
-    raise NotImplementedError("Model Factory Not Implemented")
-
-def get_model_LSTM(config_data, vocab, DEBUG=True):
+def get_model_LSTM(config_data, vocab):
     hidden_size = config_data['model']['hidden_size']
     embedding_size = config_data['model']['embedding_size']
     model_type = config_data['model']['model_type']
-    max_seq_len = config_data['generation']['max_length'] + 2
+    max_seq_len = config_data['generation']['max_length']
     num_layers = 2
     vocab_size = len(vocab)
     
     if model_type != 'LSTM':
         return False
     
-    encoder = LSTMEncoder(image_embedding_size=embedding_size)
-    
-    # Get EOS token index from vocab for decoder to know when to stop generating
-    EOS_TOK_INDEX = vocab(EOS_TOK)
-    
-    decoder = LSTMDecoder(vocab_size=vocab_size, eos_tok_index=EOS_TOK_INDEX, hidden_size=hidden_size, word_embedding_size=embedding_size, num_layers=num_layers, max_seq_len=max_seq_len)
-    model = LSTM(config_data, encoder, decoder, device)
+    encoder = Encoder(image_embedding_size=embedding_size)
+    decoder = LSTMDecoder(vocab_size=vocab_size, hidden_size=hidden_size, word_embedding_size=embedding_size, num_layers=num_layers, max_seq_len=max_seq_len)
+    model = MODEL(config_data, encoder, decoder, device)
         
     return model
 
+def get_model_vRNN(config_data, vocab):
+    hidden_size = config_data['model']['hidden_size']
+    embedding_size = config_data['model']['embedding_size']
+    model_type = config_data['model']['model_type']
+    max_seq_len = config_data['generation']['max_length']
+    num_layers = 2
+    vocab_size = len(vocab)
+    
+    if model_type != 'vRNN':
+        return False
+    
+    encoder = Encoder(image_embedding_size=embedding_size)
+    decoder = vRNNDecoder(vocab_size=vocab_size, hidden_size=hidden_size, word_embedding_size=embedding_size, num_layers=num_layers, max_seq_len=max_seq_len)
+    model = MODEL(config_data, encoder, decoder, device)
         
+    return model
     
     
     

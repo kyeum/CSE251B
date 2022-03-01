@@ -13,6 +13,7 @@ import nltk
 from PIL import Image
 from pycocotools.coco import COCO
 import random
+import re
 
 class CocoDataset(data.Dataset):
     """COCO Custom Dataset compatible with torch.utils.data.DataLoader."""
@@ -58,7 +59,9 @@ class CocoDataset(data.Dataset):
         image = self.normalize(np.asarray(image))
 
         # Convert caption (string) to word ids.
-        tokens = nltk.tokenize.word_tokenize(str(caption).lower())
+        caption = str(caption).lower()
+        caption = re.sub(r'[^\w\s]', '', caption)
+        tokens = nltk.tokenize.word_tokenize(caption)
         caption = [vocab('<start>')]
         caption.extend([vocab(token) for token in tokens])
         caption.append(vocab('<end>'))
