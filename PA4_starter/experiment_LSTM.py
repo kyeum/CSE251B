@@ -190,13 +190,14 @@ class Experiment_LSTM(object):
                     txt_true = []
                     for i in self.__coco_test.imgToAnns[img_id]:
                         caption = str(i['caption']).lower()
+                        caption = re.sub(r'[^\w\s]', '', caption)
                         cap2tok = nltk.tokenize.word_tokenize(caption)
                         txt_true.append(cap2tok)
                 
                     cnt = cnt + 1
                     
                     #1x20
-                    pred_ = self.__cap2word(pred_, self.__vocab, max_length = self.__max_length)
+                    pred_ = self.__cap2word(pred_, self.__vocab, max_length = self.__max_length).split(' ')
                     
                     #print("bleu1",caption_utils.bleu1(txt_true, pred_))
                     #print("pred",pred_)
@@ -280,7 +281,7 @@ class Experiment_LSTM(object):
                 words.append(word)
             
             # debug for max
-            if(len(words) == max_length-1):
+            if(len(words) == max_length):
                 print('max')
                 sentence = ' '.join(words)
                 sentence = sentence.lower()
@@ -289,11 +290,101 @@ class Experiment_LSTM(object):
         
         batch_caption = [re.sub(r"(^[^\w]+)|([^\w]+$)", "", b) for b in batch_caption]
         
-        return batch_caption[0].split(' ')
+        return batch_caption[0]
     
     
     
+
     
+    
+    def visualize(self, temperature):
+        state_dict = torch.load(os.path.join(self.__experiment_dir, 'best_model'))
+        self.__model.load_state_dict(state_dict['model'])
+        self.__optimizer.load_state_dict(state_dict['optimizer'])
+        self.__model.eval()
+        self.__model.config_data['generation']['temperature'] = temperature
+        
+        test_loss = 0
+        bleu1 = 0
+        bleu4 = 0
+        pred_text = []
+        cnt = 0;
+        with torch.no_grad():
+            for iter, (images, captions, img_ids) in enumerate(self.__test_loader):
+                images = images.to(device)
+                captions = captions.to(device)
+                y = self.__model(images, captions)  
+
+                y = y.permute(0,2,1) # batch size change  # caption : 8 x 22 
+                
+                #captions = captions[:,1:]
+                #y = y[:, :, :-1]     
+                
+                loss = self.__criterion(y, captions)                
+                test_loss += loss
+
+                # TODO: probably need to pad output to match true_size
+                pred_text =  self.__model(images,None) # 8 x 22 x 1
+                #print(pred_text.shape)                 #
+                
+                #pred_text = pred_text.permute(0,2,1) # batch size change  # caption : 8 x 22 x 1
+
+                #print("pred_text shape",pred_text.shape,"img_ids", len(img_ids))# 8 
+                batch = 0
+                for pred_, img_id in zip(pred_text, img_ids): # total 8 batches 
+                    #print(pred_.shape)
+                    #break
+
+                    txt_true = []
+                    for i in self.__coco_test.imgToAnns[img_id] : 
+#                         caption = i['caption'].lower()
+#                         cap2tok = nltk.tokenize.word_tokenize(str(caption).lower())
+#                         txt_true.append(cap2tok)
+                        caption = i['caption'].lower()
+                        #caption = re.sub(r'[^\w\s]', '', caption)
+                        #cap2tok = nltk.tokenize.word_tokenize(caption)
+                        txt_true.append(caption)
+                
+                    cnt = cnt + 1
+                    #1x22
+                    pred_ = self.__cap2word(pred_,self.__vocab, max_length = self.__max_length)
+                    
+                    b1 = caption_utils.bleu1(txt_true, pred_)
+                    b4 = caption_utils.bleu4(txt_true, pred_)
+                    
+                    if (b1 < 50):
+                        plt.imshow(images[batch].cpu().permute(1, 2, 0))
+                        plt.axis('off')
+                        plt.show()
+                        for it in range(0, 5):
+                            print('True caption : {}'.format(txt_true[it]))
+
+                        print('predict caption : {}'.format(pred_))
+                        print('BLEU-1 : {}'.format(b1))
+                        print('BLEU-4 : {}'.format(b4))
+
+                    batch = batch +1
+
+                    #print("bleu1",caption_utils.bleu1(txt_true, pred_))
+                    #print("pred",pred_)
+
+                    bleu1 += b1
+                    bleu4 += b4
+
+        test_loss = test_loss / cnt
+        
+        bleu1 = bleu1 / cnt
+        bleu4 = bleu4  /cnt   
+
+
+        #result_str = "Test Performance: Loss: {}, Bleu1: {}, Bleu4: {}".format(test_loss, bleu1, bleu4)
+        #self.__log(result_str)
+
+        return 0 #test_loss, bleu1, bleu4
+        
+    
+    
+        
     
     
     
