@@ -199,8 +199,9 @@ class Experiment_LSTM(object):
                     #1x20
                     pred_ = self.__cap2word(pred_, self.__vocab, max_length = self.__max_length).split(' ')
                     
-                    #print("bleu1",caption_utils.bleu1(txt_true, pred_))
-                    #print("pred",pred_)
+                    #print("bleu1:",caption_utils.bleu1(txt_true, pred_))
+                    #print("true text:",txt_true)
+                    #print("pred:",pred_)
                     bleu1 += caption_utils.bleu1(txt_true, pred_)
                     bleu4 += caption_utils.bleu4(txt_true, pred_)
                     
@@ -282,7 +283,7 @@ class Experiment_LSTM(object):
             
             # debug for max
             if(len(words) == max_length):
-#                 print('max')
+#               print('max')
                 sentence = ' '.join(words)
                 sentence = sentence.lower()
                 batch_caption.append(sentence)
@@ -291,10 +292,6 @@ class Experiment_LSTM(object):
         batch_caption = [re.sub(r"(^[^\w]+)|([^\w]+$)", "", b) for b in batch_caption]
         
         return batch_caption[0]
-    
-    
-    
-
     
     
     def visualize(self, temperature):
@@ -315,7 +312,7 @@ class Experiment_LSTM(object):
                 captions = captions.to(device)
                 y = self.__model(images, captions)  
 
-                y = y.permute(0,2,1) # batch size change  # caption : 8 x 22 
+                y = y.permute(0,2,1) # batch size change  # caption : 8 x 20
                 
                 #captions = captions[:,1:]
                 #y = y[:, :, :-1]     
@@ -324,10 +321,10 @@ class Experiment_LSTM(object):
                 test_loss += loss
 
                 # TODO: probably need to pad output to match true_size
-                pred_text =  self.__model(images,None) # 8 x 22 x 1
+                pred_text =  self.__model(images,None) # 8 x 20 x 1
                 #print(pred_text.shape)                 #
                 
-                #pred_text = pred_text.permute(0,2,1) # batch size change  # caption : 8 x 22 x 1
+                #pred_text = pred_text.permute(0,2,1) # batch size change  # caption : 8 x 20 x 1
 
                 #print("pred_text shape",pred_text.shape,"img_ids", len(img_ids))# 8 
                 batch = 0
@@ -336,17 +333,14 @@ class Experiment_LSTM(object):
                     #break
 
                     txt_true = []
-                    for i in self.__coco_test.imgToAnns[img_id] : 
-#                         caption = i['caption'].lower()
-#                         cap2tok = nltk.tokenize.word_tokenize(str(caption).lower())
-#                         txt_true.append(cap2tok)
-                        caption = i['caption'].lower()
-                        #caption = re.sub(r'[^\w\s]', '', caption)
-                        #cap2tok = nltk.tokenize.word_tokenize(caption)
+                    for i in self.__coco_test.imgToAnns[img_id]:
+                        caption = str(i['caption']).lower()
+                        caption = re.sub(r'[^\w\s]', '', caption)
                         txt_true.append(caption)
                 
                     cnt = cnt + 1
-                    #1x22
+                    
+                    #1x20
                     pred_ = self.__cap2word(pred_,self.__vocab, max_length = self.__max_length)
                     
                     b1 = caption_utils.bleu1(txt_true, pred_)
@@ -363,10 +357,11 @@ class Experiment_LSTM(object):
                         print('BLEU-1 : {}'.format(b1))
                         print('BLEU-4 : {}'.format(b4))
 
-                    batch = batch +1
+                    batch = batch + 1
 
-                    #print("bleu1",caption_utils.bleu1(txt_true, pred_))
-                    #print("pred",pred_)
+                    #print("bleu1:",caption_utils.bleu1(txt_true, pred_))
+                    #print("true text:",txt_true)
+                    #print("pred:",pred_)
 
                     bleu1 += b1
                     bleu4 += b4
@@ -374,26 +369,7 @@ class Experiment_LSTM(object):
         test_loss = test_loss / cnt
         
         bleu1 = bleu1 / cnt
-        bleu4 = bleu4  /cnt   
+        bleu4 = bleu4 / cnt
 
-
-        #result_str = "Test Performance: Loss: {}, Bleu1: {}, Bleu4: {}".format(test_loss, bleu1, bleu4)
-        #self.__log(result_str)
-
-        return 0 #test_loss, bleu1, bleu4
+        return 0
         
-    
-    
-        
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
