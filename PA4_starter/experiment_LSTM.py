@@ -212,6 +212,65 @@ class Experiment_LSTM(object):
 
         return test_loss, bleu1, bleu4
     
+    def test(self, temperature):
+        state_dict = torch.load(os.path.join(self.__experiment_dir, 'best_model'))
+        self.__model.load_state_dict(state_dict['model'])
+        self.__optimizer.load_state_dict(state_dict['optimizer'])
+        self.__model.eval()
+        self.__model.config_data['generation']['temperature'] = temperature
+        
+        test_loss = 0
+        bleu1 = 0
+        bleu4 = 0
+        pred_text = []
+        cnt = 0
+        
+        with torch.no_grad():
+            for iter, (images, captions, img_ids) in enumerate(self.__test_loader):
+                images = images.to(device)
+                captions = captions.to(device)
+                y = self.__model(images, captions)  
+
+                y = y.permute(0,2,1) # batch size change  # caption : 8 x 20
+                
+                loss = self.__criterion(y, captions)                
+                test_loss += loss.item()
+
+                # TODO: probably need to pad output to match true_size
+                pred_text =  self.__model(images,None) # 8 x 20 x 1
+                #print(pred_text.shape)                 #
+                
+                #pred_text = pred_text.permute(0,2,1) # batch size change  # caption : 8 x 20 x 1
+
+                #print("pred_text shape",pred_text.shape,"img_ids", len(img_ids))# 8 
+                
+                for pred_, img_id in zip(pred_text, img_ids): # total 8 batches 
+                    txt_true = []
+                    for i in self.__coco_test.imgToAnns[img_id]:
+                        caption = str(i['caption']).lower()
+                        cap2tok = nltk.tokenize.word_tokenize(caption)
+                        txt_true.append(cap2tok)
+                
+                    cnt = cnt + 1
+                    
+                    #1x20
+                    pred_ = self.__cap2word(pred_, self.__vocab, max_length = self.__max_length)
+                    
+                    #print("bleu1",caption_utils.bleu1(txt_true, pred_))
+                    #print("pred",pred_)
+                    bleu1 += caption_utils.bleu1(txt_true, pred_)
+                    bleu4 += caption_utils.bleu4(txt_true, pred_)
+                    
+        test_loss = test_loss / cnt
+        
+        bleu1 = bleu1 / cnt
+        bleu4 = bleu4 / cnt
+
+        result_str = "Test Performance: Loss: {}, Bleu1: {}, Bleu4: {}".format(test_loss, bleu1, bleu4)
+        self.__log(result_str)
+
+        return test_loss, bleu1, bleu4
+    
     def __save_model(self, name = 'latest_model.pt'):
         root_model_path = os.path.join(self.__experiment_dir, name)
         model_dict = self.__model.state_dict()
