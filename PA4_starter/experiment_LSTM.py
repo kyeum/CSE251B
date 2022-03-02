@@ -197,7 +197,9 @@ class Experiment_LSTM(object):
                     cnt = cnt + 1
                     
                     #1x20
-                    pred_ = self.__cap2word(pred_, self.__vocab, max_length = self.__max_length).split(' ')
+                    pred_ = self.__cap2word(pred_, self.__vocab, max_length = self.__max_length)
+                    if pred_ != "":
+                        pred_ = pred_.split(' ')
                     
                     #print("bleu1:",caption_utils.bleu1(txt_true, pred_))
                     #print("true text:",txt_true)
@@ -291,7 +293,9 @@ class Experiment_LSTM(object):
         
         batch_caption = [re.sub(r"(^[^\w]+)|([^\w]+$)", "", b) for b in batch_caption]
         
-        return batch_caption[0]
+        if len(batch_caption) > 0:
+            return batch_caption[0]
+        return ""
     
     
     def visualize(self, temperature):
