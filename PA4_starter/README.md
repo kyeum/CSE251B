@@ -15,13 +15,16 @@ We used jupyter notebooks for the main body for each part. Due to various experi
 ### Main Notebooks
 1. Baseline LSTM was implemented in `main_LSTM-baseline.ipynb` - The correspond Json is `default_baseline.json`  
 2. Best LSTM was implemented in `main_BESTLSTM.ipynb` - The correspond Json is `LSTM_DECAY_0.1.json`  
-3. Best RNN was implemented in `main_vRNN.ipynb` - The correspond Json is `LSTM_DECAY_0.1.json`  
+3. Best RNN was implemented in `main_vRNN.ipynb` - The correspond Json is `RNN_default.json`
+4. Tuning was implemented in `main_LSTM_EMBED400.ipynb` - The correspond Json is `LSTM_EMBED400.json`
+5. Tuning was implemented in `main_LSTM_HIDDEN256-LR.ipynb` - The correspond Json is `LSTM_HIDDEN256-LR.json`
+
 
 To run, simply open the jupyter notebooks with jupyter notebook and press `Run All`.
 
 ### Other files
 - main.py: Main driver class
-- experiment.py: Main experiment class. Initialized based on config - takes care of training, saving stats and plots, logging and resuming experiments.
+- experiment_LSTM.py: Main experiment class. Initialized based on config - takes care of training, saving stats and plots, logging and resuming experiments.
 - dataset_factory: Factory to build datasets based on config
 - model_factory.py: Factory to build models based on config
 - constants.py: constants used across the project
@@ -30,5 +33,4 @@ To run, simply open the jupyter notebooks with jupyter notebook and press `Run A
 - vocab.py: A simple Vocabulary wrapper
 - coco_dataset: A simple implementation of `torch.utils.data.Dataset` the Coco Dataset
 - get_datasets.ipynb: A helper notebook to set up the dataset in your workspace
-
 
